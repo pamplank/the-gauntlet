@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, isAuthed } from "../../../lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req) {
   if (!isAuthed()) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   const { round, gameId, placements } = await req.json();

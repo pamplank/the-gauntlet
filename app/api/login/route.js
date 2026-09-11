@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin, SESSION_COOKIE, SESSION_VALUE } from "../../../lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req) {
   const { password } = await req.json();
   const { data: row } = await supabaseAdmin.from("admin_auth").select("password_hash").eq("id", 1).maybeSingle();
@@ -14,7 +16,7 @@ export async function POST(req) {
   res.cookies.set(SESSION_COOKIE, SESSION_VALUE, {
     httpOnly: true,
     sameSite: "lax",
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });

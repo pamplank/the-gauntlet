@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin, isAuthed } from "../../../lib/db";
 import { generateSchedule } from "../../../lib/schedule";
 
+export const dynamic = "force-dynamic";
+
 export async function POST() {
   if (!isAuthed()) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
 
