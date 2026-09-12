@@ -11,6 +11,39 @@ function gameCode(name) {
   return words.map((w) => w[0]).join("").toUpperCase().slice(0, 6);
 }
 
+// Phone photos can be several MB straight off the camera, and every one of
+// them rides along in /api/players' response for every dropdown and list
+// in the app. Resize + recompress client-side before it ever gets stored.
+function resizeImage(file, maxDim = 480, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new window.Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => resolve(reader.result);
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function AdminPage() {
   const [session, setSession] = useState(null); // {needsSetup, loggedIn}
   const [pw, setPw] = useState("");
@@ -36,18 +69,19 @@ export default function AdminPage() {
 
   // A single flaky fetch (cold serverless function, a dropped connection)
   // used to be able to break every load after it in the chain, silently —
-  // one retry, and each loader runs independently so one failure can't
-  // block the others.
+  // a few retries with backoff, and each loader runs independently so one
+  // failure can't block the others.
   async function fetchJSON(url) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const r = await fetch(url);
         return await r.json();
       } catch (e) {
-        if (attempt === 1) {
+        if (attempt === 2) {
           console.error("Failed to load", url, e);
           return null;
         }
+        await new Promise((res) => setTimeout(res, 400 * (attempt + 1)));
       }
     }
   }
@@ -123,9 +157,7 @@ export default function AdminPage() {
   function onFile(e) {
     const f = e.target.files[0];
     if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result);
-    reader.readAsDataURL(f);
+    resizeImage(f).then(setImage);
   }
   async function addPlayer() {
     if (!name.trim()) return;
@@ -159,9 +191,7 @@ export default function AdminPage() {
   function onEditFile(e) {
     const f = e.target.files[0];
     if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => setEditImage(reader.result);
-    reader.readAsDataURL(f);
+    resizeImage(f).then(setEditImage);
   }
   async function saveEdit(id) {
     if (!editName.trim()) return;
