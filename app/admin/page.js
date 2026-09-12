@@ -20,9 +20,13 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editImage, setEditImage] = useState(null);
+  const [mmMode, setMmMode] = useState("manual");
   const [mmPlayer, setMmPlayer] = useState("");
   const [mmGame, setMmGame] = useState("");
   const [mmMsg, setMmMsg] = useState("");
+  const [randomSelected, setRandomSelected] = useState([]);
+  const [randomMsg, setRandomMsg] = useState("");
+  const [randomizing, setRandomizing] = useState(false);
 
   async function loadSession() {
     const r = await fetch("/api/session").then((r) => r.json());
@@ -60,6 +64,8 @@ export default function AdminPage() {
     setMmPlayer("");
     setMmGame("");
     setMmMsg("");
+    setRandomSelected([]);
+    setRandomMsg("");
   }, [round]);
 
   async function submitSetup() {
@@ -170,6 +176,36 @@ export default function AdminPage() {
     }
     setMmPlayer("");
     setMmGame("");
+    loadAdminData(round);
+    loadTracker();
+  }
+  function toggleRandomSelect(id) {
+    setRandomSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+  async function runRandomize() {
+    if (randomSelected.length === 0) return;
+    setRandomizing(true);
+    setRandomMsg("");
+    const r = await fetch("/api/randomize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ round, playerIds: randomSelected }),
+    }).then((r) => r.json());
+    setRandomizing(false);
+    if (r.error) {
+      setRandomMsg(r.error);
+      return;
+    }
+    const nameOf = (id) => players.find((p) => p.id === id)?.name || "?";
+    const parts = [`Placed ${r.assignedCount} player${r.assignedCount === 1 ? "" : "s"}.`];
+    if (r.unplacedIds?.length) {
+      parts.push(`Couldn't place (already played everything open this round): ${r.unplacedIds.map(nameOf).join(", ")}.`);
+    }
+    if (r.skippedIds?.length) {
+      parts.push(`Already assigned this round, skipped: ${r.skippedIds.map(nameOf).join(", ")}.`);
+    }
+    setRandomMsg(parts.join(" "));
+    setRandomSelected([]);
     loadAdminData(round);
     loadTracker();
   }
@@ -323,28 +359,68 @@ export default function AdminPage() {
             </button>
           ))}
         </div>
-        <div className="swap-row">
-          <select value={mmPlayer} onChange={(e) => { setMmPlayer(e.target.value); setMmGame(""); }}>
-            <option value="">Pick a present player…</option>
-            {unassignedPlayers.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <span>→</span>
-          <select value={mmGame} onChange={(e) => setMmGame(e.target.value)} disabled={!mmPlayer}>
-            <option value="">Pick a game…</option>
-            {availableGames.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
-          <button className="btn small gold" onClick={assignPlayer} disabled={!mmPlayer || !mmGame}>
-            Assign
-          </button>
+
+        <div className="round-selector">
+          <button className={mmMode === "manual" ? "active" : ""} onClick={() => setMmMode("manual")}>Manual</button>
+          <button className={mmMode === "random" ? "active" : ""} onClick={() => setMmMode("random")}>Randomizer</button>
         </div>
-        {mmPlayer && availableGames.length === 0 && (
-          <div className="msg err">This player has already played every game, or all remaining games are full this round.</div>
+
+        {mmMode === "manual" ? (
+          <>
+            <div className="swap-row">
+              <select value={mmPlayer} onChange={(e) => { setMmPlayer(e.target.value); setMmGame(""); }}>
+                <option value="">Pick a present player…</option>
+                {unassignedPlayers.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <span>→</span>
+              <select value={mmGame} onChange={(e) => setMmGame(e.target.value)} disabled={!mmPlayer}>
+                <option value="">Pick a game…</option>
+                {availableGames.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+              <button className="btn small gold" onClick={assignPlayer} disabled={!mmPlayer || !mmGame}>
+                Assign
+              </button>
+            </div>
+            {mmPlayer && availableGames.length === 0 && (
+              <div className="msg err">This player has already played every game, or all remaining games are full this round.</div>
+            )}
+            {mmMsg && <div className="msg err">{mmMsg}</div>}
+          </>
+        ) : (
+          <>
+            <p className="hint" style={{ marginTop: -6 }}>
+              Check everyone who's here for this round, then randomize once — it clusters them into
+              as few games as possible (up to 4 each) while skipping games they've already played.
+            </p>
+            <div className="checkbox-list">
+              {unassignedPlayers.map((p) => (
+                <label key={p.id} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={randomSelected.includes(p.id)}
+                    onChange={() => toggleRandomSelect(p.id)}
+                  />
+                  {p.name}
+                </label>
+              ))}
+            </div>
+            <div className="swap-row">
+              <button className="btn small ghost" onClick={() => setRandomSelected(unassignedPlayers.map((p) => p.id))}>
+                Select All
+              </button>
+              <button className="btn small ghost" onClick={() => setRandomSelected([])}>Clear</button>
+              <button className="btn gold" onClick={runRandomize} disabled={randomSelected.length === 0 || randomizing}>
+                {randomizing ? "Randomizing…" : `Randomize & Assign (${randomSelected.length})`}
+              </button>
+            </div>
+            {randomMsg && <div className="msg">{randomMsg}</div>}
+          </>
         )}
-        {mmMsg && <div className="msg err">{mmMsg}</div>}
+
         {unassignedPlayers.length === 0 && players.length > 0 && (
           <div className="hint" style={{ marginTop: 10 }}>Everyone's already placed into a game this round.</div>
         )}
