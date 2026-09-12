@@ -128,10 +128,15 @@ table.lb tr:nth-child(3) .rank.top3{background:linear-gradient(155deg,#e3a476,va
 .tracker-wrap::-webkit-scrollbar-thumb:hover{background:var(--gold);}
 .tracker-table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap;}
 .tracker-table th, .tracker-table td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:center;}
-.tracker-table th{color:var(--bone-dim);font-size:11px;letter-spacing:.03em;text-transform:uppercase;font-weight:normal;max-width:110px;overflow:hidden;text-overflow:ellipsis;}
+.tracker-table th{color:var(--bone-dim);font-size:11px;letter-spacing:.03em;text-transform:uppercase;font-weight:normal;}
+.tracker-table th.scarce{color:var(--warn);}
+.tracker-table th .count-badge{display:block;font-family:Georgia,serif;font-style:italic;font-size:10px;color:var(--warn);text-transform:none;letter-spacing:0;margin-top:2px;}
 .tracker-table td:first-child, .tracker-table th:first-child{text-align:left;position:sticky;left:0;background:var(--panel);z-index:1;}
-.tracker-table td.played{color:var(--good);font-weight:bold;}
+.tracker-table td.scarce-col{background:rgba(221,77,133,.06);}
+.tracker-table .mark-yes{display:inline-flex;width:18px;height:18px;border-radius:50%;background:linear-gradient(155deg,#7bc478,var(--good) 65%,var(--good-dim));align-items:center;justify-content:center;color:#12240f;font-size:10px;font-weight:700;}
+.tracker-name{display:flex;align-items:center;gap:8px;}
 .tracker-table tbody tr:hover td{background:rgba(219,168,87,.05);}
+.tracker-table tbody tr:hover td.scarce-col{background:rgba(221,77,133,.1);}
 .tracker-table tbody tr:hover td:first-child{background:var(--bg2);}
 .round-selector a, .round-selector button{background:var(--bg2);border:1px solid var(--line);color:var(--bone-dim);padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s ease;}
 .round-selector a:hover, .round-selector button:hover{color:var(--bone);border-color:var(--bone-dim);}

@@ -5,6 +5,12 @@ import Nav from "../Nav";
 const PLACE_WOUNDS = { 1: 1, 2: 2, 3: 3, 4: 4 };
 const PLACE_LABEL = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
 
+function gameCode(name) {
+  const words = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (words.length <= 1) return (words[0] || "?").slice(0, 5).toUpperCase();
+  return words.map((w) => w[0]).join("").toUpperCase().slice(0, 6);
+}
+
 export default function AdminPage() {
   const [session, setSession] = useState(null); // {needsSetup, loggedIn}
   const [pw, setPw] = useState("");
@@ -279,6 +285,18 @@ export default function AdminPage() {
     ? games.filter((g) => !playedGamesByPlayer[mmPlayer]?.has(g.id) && (byGame[g.id] || []).length < 4)
     : [];
 
+  // Tracker: order columns by scarcity (fewest total plays first) so the most
+  // neglected game sits right next to the names, and flag the scarcest ones.
+  const gameTotals = games.map((g) => ({
+    ...g,
+    total: players.filter((p) => playedGamesByPlayer[p.id]?.has(g.id)).length,
+  }));
+  const scarceOrder = gameTotals.slice().sort((a, b) => a.total - b.total);
+  const scarceIds = new Set(scarceOrder.slice(0, 2).map((g) => g.id));
+  const trackedPlayers = players
+    .slice()
+    .sort((a, b) => (playedGamesByPlayer[a.id]?.size || 0) - (playedGamesByPlayer[b.id]?.size || 0));
+
   return (
     <div className="wrap">
       <Nav />
@@ -437,7 +455,11 @@ export default function AdminPage() {
 
       <div className="panel">
         <h2>Tracker</h2>
-        <p className="hint">Games each combatant has already played (any round).</p>
+        <p className="hint">
+          Games each combatant has already played (any round). Columns are ordered by scarcity —
+          whichever game has been played the least sits right next to the names, flagged in{" "}
+          <span style={{ color: "var(--warn)" }}>magenta</span>.
+        </p>
         {players.length === 0 ? (
           <div className="empty">No combatants yet.</div>
         ) : (
@@ -446,20 +468,35 @@ export default function AdminPage() {
               <thead>
                 <tr>
                   <th>Combatant</th>
-                  {games.map((g) => (
-                    <th key={g.id} title={g.name}>{g.name}</th>
+                  {scarceOrder.map((g) => (
+                    <th key={g.id} title={g.name} className={scarceIds.has(g.id) ? "scarce" : ""}>
+                      {gameCode(g.name)}
+                      {scarceIds.has(g.id) && <span className="count-badge">{g.total} played</span>}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {players.map((p) => (
+                {trackedPlayers.map((p) => (
                   <tr key={p.id}>
-                    <td>{p.name}</td>
-                    {games.map((g) => (
-                      <td key={g.id} className={playedGamesByPlayer[p.id]?.has(g.id) ? "played" : ""}>
-                        {playedGamesByPlayer[p.id]?.has(g.id) ? "✓" : ""}
-                      </td>
-                    ))}
+                    <td>
+                      <div className="tracker-name">
+                        {p.image_url ? (
+                          <img className="avatar tiny" src={p.image_url} />
+                        ) : (
+                          <div className="avatar tiny placeholder">{(p.name || "?")[0]?.toUpperCase()}</div>
+                        )}
+                        {p.name}
+                      </div>
+                    </td>
+                    {scarceOrder.map((g) => {
+                      const on = playedGamesByPlayer[p.id]?.has(g.id);
+                      return (
+                        <td key={g.id} className={scarceIds.has(g.id) ? "scarce-col" : ""}>
+                          {on && <span className="mark-yes">✓</span>}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
