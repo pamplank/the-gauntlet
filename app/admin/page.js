@@ -34,32 +34,53 @@ export default function AdminPage() {
   const [randomMsg, setRandomMsg] = useState("");
   const [randomizing, setRandomizing] = useState(false);
 
+  // A single flaky fetch (cold serverless function, a dropped connection)
+  // used to be able to break every load after it in the chain, silently —
+  // one retry, and each loader runs independently so one failure can't
+  // block the others.
+  async function fetchJSON(url) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const r = await fetch(url);
+        return await r.json();
+      } catch (e) {
+        if (attempt === 1) {
+          console.error("Failed to load", url, e);
+          return null;
+        }
+      }
+    }
+  }
+
   async function loadSession() {
-    const r = await fetch("/api/session").then((r) => r.json());
+    const r = await fetchJSON("/api/session");
+    if (!r) return;
     setSession(r);
     if (r.loggedIn) {
-      await loadPlayers();
-      await loadGames();
-      await loadAdminData(0);
-      await loadTracker();
+      loadPlayers();
+      loadGames();
+      loadAdminData(round);
+      loadTracker();
     }
   }
   async function loadPlayers() {
-    const r = await fetch("/api/players").then((r) => r.json());
-    setPlayers(r.players || []);
+    const r = await fetchJSON("/api/players");
+    if (r) setPlayers(r.players || []);
   }
   async function loadGames() {
-    const r = await fetch("/api/games").then((r) => r.json());
-    setGames(r.games || []);
+    const r = await fetchJSON("/api/games");
+    if (r) setGames(r.games || []);
   }
   async function loadAdminData(r0) {
-    const r = await fetch(`/api/admin-data?round=${r0}`).then((r) => r.json());
-    setScheduleRows(r.schedule || []);
-    setResults(r.results || []);
+    const r = await fetchJSON(`/api/admin-data?round=${r0}`);
+    if (r) {
+      setScheduleRows(r.schedule || []);
+      setResults(r.results || []);
+    }
   }
   async function loadTracker() {
-    const r = await fetch("/api/tracker").then((r) => r.json());
-    setAllSchedule(r.schedule || []);
+    const r = await fetchJSON("/api/tracker");
+    if (r) setAllSchedule(r.schedule || []);
   }
 
   useEffect(() => {
@@ -536,6 +557,7 @@ export default function AdminPage() {
         </div>
       </div>
 
+      <button className="btn ghost" onClick={loadSession}>↻ Refresh Data</button>{" "}
       <button className="btn ghost" onClick={logout}>Log Out</button>
     </div>
   );
