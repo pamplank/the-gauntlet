@@ -621,6 +621,13 @@ function MatchCard({ game, round, group, existing, onSaved, onUnassign }) {
     else onSaved();
   }
 
+  async function unsave() {
+    if (!confirm("Clear the recorded result for this match? You'll be able to unassign players and re-enter placements afterward.")) return;
+    const r = await fetch(`/api/results?round=${round}&gameId=${game.id}`, { method: "DELETE" }).then((r) => r.json());
+    if (r.error) alert(r.error);
+    else onSaved();
+  }
+
   return (
     <div className={"match-card" + (done ? " done" : "")}>
       <h3>{game.name} — Round {round + 1}</h3>
@@ -653,6 +660,11 @@ function MatchCard({ game, round, group, existing, onSaved, onUnassign }) {
           <button className="btn save" style={{ marginTop: 8, width: "100%" }} onClick={save}>
             Save Result
           </button>
+          {done && (
+            <button className="btn small ghost" style={{ marginTop: 6, width: "100%" }} onClick={unsave}>
+              ↺ Unsave Result
+            </button>
+          )}
         </>
       )}
     </div>

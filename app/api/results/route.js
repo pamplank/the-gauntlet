@@ -21,3 +21,16 @@ export async function POST(req) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(req) {
+  if (!isAuthed()) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
+  const { searchParams } = new URL(req.url);
+  const round = searchParams.get("round");
+  const gameId = searchParams.get("gameId");
+  if (round === null || !gameId) {
+    return NextResponse.json({ error: "round and gameId required." }, { status: 400 });
+  }
+  const { error } = await supabaseAdmin.from("results").delete().eq("round", round).eq("game_id", gameId);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
