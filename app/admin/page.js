@@ -334,15 +334,19 @@ export default function AdminPage() {
       <div className="panel">
         <h2>The 9 Games</h2>
         <p className="hint">Name each game/station. Each game master runs one of these.</p>
-        {games.map((g) => (
-          <input
-            key={g.id}
-            type="text"
-            value={g.name}
-            onChange={(e) => renameGame(g.id, e.target.value)}
-            onBlur={(e) => saveGameName(g.id, e.target.value)}
-          />
-        ))}
+        <div className="games-name-grid">
+          {games.map((g, i) => (
+            <div className="games-name-row" key={g.id}>
+              <span className="games-name-num">{i + 1}</span>
+              <input
+                type="text"
+                value={g.name}
+                onChange={(e) => renameGame(g.id, e.target.value)}
+                onBlur={(e) => saveGameName(g.id, e.target.value)}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="panel">
@@ -360,7 +364,7 @@ export default function AdminPage() {
           ))}
         </div>
 
-        <div className="round-selector">
+        <div className="mode-toggle">
           <button className={mmMode === "manual" ? "active" : ""} onClick={() => setMmMode("manual")}>Manual</button>
           <button className={mmMode === "random" ? "active" : ""} onClick={() => setMmMode("random")}>Randomizer</button>
         </div>
@@ -398,12 +402,17 @@ export default function AdminPage() {
             </p>
             <div className="checkbox-list">
               {unassignedPlayers.map((p) => (
-                <label key={p.id} className="checkbox-item">
+                <label key={p.id} className={"checkbox-item" + (randomSelected.includes(p.id) ? " checked" : "")}>
                   <input
                     type="checkbox"
                     checked={randomSelected.includes(p.id)}
                     onChange={() => toggleRandomSelect(p.id)}
                   />
+                  {p.image_url ? (
+                    <img className="avatar tiny" src={p.image_url} />
+                  ) : (
+                    <div className="avatar tiny placeholder">{(p.name || "?")[0]?.toUpperCase()}</div>
+                  )}
                   {p.name}
                 </label>
               ))}
@@ -473,17 +482,20 @@ export default function AdminPage() {
           ))}
         </div>
         <div className="match-grid">
-          {games.map((g) => (
-            <MatchCard
-              key={g.id}
-              game={g}
-              round={round}
-              group={byGame[g.id] || []}
-              existing={resultLookup[g.id] || {}}
-              onSaved={() => { loadAdminData(round); loadTracker(); }}
-              onUnassign={(playerId) => unassignPlayer(g.id, playerId)}
-            />
-          ))}
+          {games.map((g) => {
+            const existing = resultLookup[g.id] || {};
+            return (
+              <MatchCard
+                key={g.id + "-" + round + "-" + Object.keys(existing).length}
+                game={g}
+                round={round}
+                group={byGame[g.id] || []}
+                existing={existing}
+                onSaved={() => { loadAdminData(round); loadTracker(); }}
+                onUnassign={(playerId) => unassignPlayer(g.id, playerId)}
+              />
+            );
+          })}
         </div>
       </div>
 
