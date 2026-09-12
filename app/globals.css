@@ -87,6 +87,7 @@ table.lb tr:nth-child(1) .rank.top3{background:linear-gradient(155deg,#f2d488,va
 table.lb tr:nth-child(2) .rank.top3{background:linear-gradient(155deg,#eef1f5,var(--silver) 60%,#9aa1ae);}
 table.lb tr:nth-child(3) .rank.top3{background:linear-gradient(155deg,#e3a476,var(--bronze) 60%,#8a5228);}
 .wounds{color:var(--blood-bright);font-weight:bold;}
+.placecount{text-align:center;color:var(--bone-dim);font-variant-numeric:tabular-nums;}
 .games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
 .game-card{border:1px solid var(--line);background:var(--bg2);padding:14px;transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;}
 .game-card:hover{transform:translateY(-2px);border-color:var(--gold-dim);box-shadow:0 10px 20px -14px rgba(0,0,0,.7);}
@@ -120,5 +121,5 @@ table.lb tr:nth-child(3) .rank.top3{background:linear-gradient(155deg,#e3a476,va
   header.top .title h1{font-size:23px;}
   .panel{padding:16px;}
   .place-row .placelabel{width:72px;font-size:11px;}
-  table.lb th:nth-child(4), table.lb td:nth-child(4){display:none;}
+  table.lb th:nth-child(n+4), table.lb td:nth-child(n+4){display:none;}
 }
