@@ -1,7 +1,7 @@
 :root{
   --bg:#0f0a15; --bg2:#1a1120; --panel:#1e1526; --line:#3d2c48;
   --bone:#ecdfe6; --bone-dim:#a692ad; --blood:#9c2d5e; --blood-bright:#dd4d85;
-  --gold:#dba857; --gold-dim:#8a6a38; --gold-glow:rgba(219,168,87,.35); --good:#5fae5a;
+  --gold:#dba857; --gold-dim:#8a6a38; --gold-glow:rgba(219,168,87,.35); --good:#5fae5a; --good-dim:#3a6b3a;
   --silver:#c7ccd6; --bronze:#c17a45;
   --cyan:#7fe3f2; --cyan-dim:#3f7d8a; --cyan-glow:rgba(127,227,242,.3);
 }
