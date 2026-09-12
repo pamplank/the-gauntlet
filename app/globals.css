@@ -76,6 +76,9 @@ button.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none
 .avatar{width:38px;height:38px;border-radius:50%;object-fit:cover;border:1px solid var(--gold-dim);background:var(--bg2);flex-shrink:0;box-shadow:0 0 0 2px rgba(0,0,0,.3);}
 .avatar.placeholder{display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--bone-dim);font-family:var(--font-display, 'Cinzel'),serif;}
 .player-row .name{flex:1;font-size:14px;}
+.player-row.editing{flex-wrap:wrap;}
+.player-row .edit-name{flex:1;min-width:120px;margin-bottom:0;}
+.player-row .edit-file{flex:0 0 auto;max-width:150px;margin-bottom:0;}
 table.lb{width:100%;border-collapse:collapse;}
 table.lb th{text-align:left;font-size:11px;letter-spacing:.05em;color:var(--bone-dim);border-bottom:1px solid var(--line);padding:8px 6px;font-weight:normal;text-transform:uppercase;}
 table.lb td{padding:11px 6px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle;}

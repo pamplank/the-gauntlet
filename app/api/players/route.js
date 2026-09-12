@@ -77,6 +77,28 @@ export async function POST(req) {
   });
 }
 
+export async function PATCH(req) {
+  if (!isAuthed()) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
+  const { id, name, image } = await req.json();
+  if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
+
+  const update = {};
+  if (name !== undefined) {
+    if (!name.trim()) return NextResponse.json({ error: "Name is required." }, { status: 400 });
+    update.name = name.trim();
+  }
+  if (image !== undefined) {
+    update.image_url = image || null;
+  }
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
+  }
+
+  const { data, error } = await supabaseAdmin.from("players").update(update).eq("id", id).select().single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ player: data });
+}
+
 export async function DELETE(req) {
   if (!isAuthed()) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   const { searchParams } = new URL(req.url);

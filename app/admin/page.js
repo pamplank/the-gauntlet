@@ -18,6 +18,9 @@ export default function AdminPage() {
   const [image, setImage] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [lateMsg, setLateMsg] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editImage, setEditImage] = useState(null);
 
   async function loadSession() {
     const r = await fetch("/api/session").then((r) => r.json());
@@ -116,6 +119,39 @@ export default function AdminPage() {
     await fetch(`/api/players?id=${id}`, { method: "DELETE" });
     loadPlayers();
   }
+  function startEdit(p) {
+    setEditingId(p.id);
+    setEditName(p.name);
+    setEditImage(null);
+  }
+  function cancelEdit() {
+    setEditingId(null);
+    setEditName("");
+    setEditImage(null);
+  }
+  function onEditFile(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => setEditImage(reader.result);
+    reader.readAsDataURL(f);
+  }
+  async function saveEdit(id) {
+    if (!editName.trim()) return;
+    const body = { id, name: editName };
+    if (editImage) body.image = editImage;
+    const r = await fetch("/api/players", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => r.json());
+    if (r.error) {
+      alert(r.error);
+      return;
+    }
+    cancelEdit();
+    loadPlayers();
+  }
   async function renameGame(id, newName) {
     setGames((gs) => gs.map((g) => (g.id === id ? { ...g, name: newName } : g)));
   }
@@ -188,7 +224,8 @@ export default function AdminPage() {
         <p className="hint">
           Add each player's name and optional photo. Fewer than 36 is fine — unused seats show as
           empty; if a game round has fewer than 4 real players, the schedule auto-fills the rest
-          with filler slots.
+          with filler slots. Click <strong>Edit</strong> on any combatant to rename them or add/change
+          their photo at any time — this never touches the schedule or recorded results.
           {hasSchedule && (
             <>
               {" "}Since the schedule's already generated, adding someone now treats them as a{" "}
@@ -203,17 +240,39 @@ export default function AdminPage() {
         <input type="file" accept="image/*" onChange={onFile} />
         <button className="btn" onClick={addPlayer}>Add Player</button>
         <div style={{ marginTop: 14 }}>
-          {players.map((p) => (
-            <div className="player-row" key={p.id}>
-              {p.image_url ? (
-                <img className="avatar" src={p.image_url} />
-              ) : (
-                <div className="avatar placeholder">{(p.name || "?")[0]?.toUpperCase()}</div>
-              )}
-              <span className="name">{p.name}</span>
-              <button className="btn small ghost" onClick={() => removePlayer(p.id)}>Remove</button>
-            </div>
-          ))}
+          {players.map((p) =>
+            editingId === p.id ? (
+              <div className="player-row editing" key={p.id}>
+                {editImage ? (
+                  <img className="avatar" src={editImage} />
+                ) : p.image_url ? (
+                  <img className="avatar" src={p.image_url} />
+                ) : (
+                  <div className="avatar placeholder">{(p.name || "?")[0]?.toUpperCase()}</div>
+                )}
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="edit-name"
+                />
+                <input type="file" accept="image/*" onChange={onEditFile} className="edit-file" />
+                <button className="btn small gold" onClick={() => saveEdit(p.id)}>Save</button>
+                <button className="btn small ghost" onClick={cancelEdit}>Cancel</button>
+              </div>
+            ) : (
+              <div className="player-row" key={p.id}>
+                {p.image_url ? (
+                  <img className="avatar" src={p.image_url} />
+                ) : (
+                  <div className="avatar placeholder">{(p.name || "?")[0]?.toUpperCase()}</div>
+                )}
+                <span className="name">{p.name}</span>
+                <button className="btn small ghost" onClick={() => startEdit(p)}>Edit</button>
+                <button className="btn small ghost" onClick={() => removePlayer(p.id)}>Remove</button>
+              </div>
+            )
+          )}
         </div>
       </div>
 
