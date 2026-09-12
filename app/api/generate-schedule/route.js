@@ -22,11 +22,29 @@ export async function POST() {
     .select("id")
     .eq("is_filler", false);
   if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 });
+  const realIds = (realPlayers || []).map((p) => p.id);
+  if (realIds.length === 0) {
+    return NextResponse.json({ error: "Add at least one combatant before generating a schedule." }, { status: 400 });
+  }
 
-  const need = 36 - (realPlayers || []).length;
+  // Schedule only the players who are actually here — packed as densely as
+  // possible (up to 4 per game) so they play together instead of being
+  // scattered one-per-game. A game nobody's in this round is left empty.
+  const schedule = generateSchedule(realIds, gameIds);
+
+  // Fillers only pad a short group up to 4 — never a whole game by
+  // themselves. Reused across rounds (no per-filler constraints), so we
+  // only need as many as the single neediest round requires.
+  let maxFillersPerRound = 0;
+  Object.values(schedule).forEach((byGame) => {
+    let need = 0;
+    Object.values(byGame).forEach((group) => (need += Math.max(0, 4 - group.length)));
+    maxFillersPerRound = Math.max(maxFillersPerRound, need);
+  });
+
   let fillerIds = [];
-  if (need > 0) {
-    const fillerRows = Array.from({ length: need }).map(() => ({
+  if (maxFillersPerRound > 0) {
+    const fillerRows = Array.from({ length: maxFillersPerRound }).map(() => ({
       name: "Filler Slot",
       is_filler: true,
     }));
@@ -35,26 +53,25 @@ export async function POST() {
     fillerIds = (inserted || []).map((p) => p.id);
   }
 
-  const allPlayerIds = [...(realPlayers || []).map((p) => p.id), ...fillerIds];
-
-  const schedule = generateSchedule(allPlayerIds, gameIds);
-
   // Clear old schedule + results, insert new schedule.
   await supabaseAdmin.from("results").delete().neq("round", -1);
   await supabaseAdmin.from("schedule").delete().neq("round", -1);
 
   const rows = [];
-  Object.entries(schedule).forEach(([round, byGame]) => {
-    Object.entries(byGame).forEach(([gameId, group]) => {
-      group.forEach((playerId) => {
-        rows.push({ round: parseInt(round, 10), game_id: gameId, player_id: playerId });
+  Object.keys(schedule)
+    .map(Number)
+    .forEach((round) => {
+      let fillerCursor = 0;
+      Object.entries(schedule[round]).forEach(([gameId, group]) => {
+        const padded = group.slice();
+        while (padded.length < 4) padded.push(fillerIds[fillerCursor++]);
+        padded.forEach((playerId) => rows.push({ round, game_id: gameId, player_id: playerId }));
       });
     });
-  });
   if (rows.length > 0) {
     const { error: sErr } = await supabaseAdmin.from("schedule").insert(rows);
     if (sErr) return NextResponse.json({ error: sErr.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, rounds: gameIds.length, players: allPlayerIds.length });
+  return NextResponse.json({ ok: true, rounds: gameIds.length, players: realIds.length });
 }
