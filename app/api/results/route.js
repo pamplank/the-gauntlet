@@ -9,10 +9,6 @@ export async function POST(req) {
   if (round === undefined || !gameId || !placements) {
     return NextResponse.json({ error: "round, gameId, placements required." }, { status: 400 });
   }
-  const used = new Set(Object.values(placements));
-  if (used.size !== Object.keys(placements).length) {
-    return NextResponse.json({ error: "Each placement (1st-4th) must be assigned to only one player." }, { status: 400 });
-  }
 
   await supabaseAdmin.from("results").delete().eq("round", round).eq("game_id", gameId);
   const rows = Object.entries(placements).map(([playerId, placement]) => ({

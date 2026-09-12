@@ -511,18 +511,16 @@ function MatchCard({ game, round, group, existing, onSaved, onUnassign }) {
   async function save() {
     const placements = {};
     let valid = true;
-    const used = new Set();
     group.forEach((row) => {
       const val = sel[row.player_id];
-      if (!val || used.has(val)) {
+      if (!val) {
         valid = false;
         return;
       }
-      used.add(val);
       placements[row.player_id] = parseInt(val, 10);
     });
     if (!valid) {
-      alert("Assign a unique place to every player before saving.");
+      alert("Assign a place to every player before saving.");
       return;
     }
     const r = await fetch("/api/results", {
