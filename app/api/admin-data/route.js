@@ -17,12 +17,10 @@ export async function GET(req) {
     .from("results")
     .select("game_id,player_id,placement")
     .eq("round", round);
-  const { data: scheduleExists } = await supabaseAdmin.from("schedule").select("round").limit(1);
 
   return NextResponse.json({
     games: games || [],
     schedule: schedule || [],
     results: results || [],
-    hasSchedule: (scheduleExists || []).length > 0,
   });
 }

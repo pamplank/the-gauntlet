@@ -45,9 +45,7 @@ export default async function SchedulePage({ searchParams }) {
                 </a>
               ))}
             </div>
-            <div className="empty">
-              Schedule hasn't been generated yet. An admin needs to generate it in the Admin tab.
-            </div>
+            <div className="empty">No one's been placed into a game for this round yet.</div>
           </>
         ) : (
           <>

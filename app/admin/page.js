@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Nav from "../Nav";
 
 const PLACE_WOUNDS = { 1: 1, 2: 2, 3: 3, 4: 4 };
+const PLACE_LABEL = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
 
 export default function AdminPage() {
   const [session, setSession] = useState(null); // {needsSetup, loggedIn}
@@ -13,17 +14,15 @@ export default function AdminPage() {
   const [round, setRound] = useState(0);
   const [scheduleRows, setScheduleRows] = useState([]);
   const [results, setResults] = useState([]);
-  const [hasSchedule, setHasSchedule] = useState(false);
+  const [allSchedule, setAllSchedule] = useState([]);
   const [name, setName] = useState("");
   const [image, setImage] = useState(null);
-  const [generating, setGenerating] = useState(false);
-  const [lateMsg, setLateMsg] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editImage, setEditImage] = useState(null);
-  const [swapA, setSwapA] = useState("");
-  const [swapB, setSwapB] = useState("");
-  const [swapMsg, setSwapMsg] = useState("");
+  const [mmPlayer, setMmPlayer] = useState("");
+  const [mmGame, setMmGame] = useState("");
+  const [mmMsg, setMmMsg] = useState("");
 
   async function loadSession() {
     const r = await fetch("/api/session").then((r) => r.json());
@@ -32,6 +31,7 @@ export default function AdminPage() {
       await loadPlayers();
       await loadGames();
       await loadAdminData(0);
+      await loadTracker();
     }
   }
   async function loadPlayers() {
@@ -46,7 +46,10 @@ export default function AdminPage() {
     const r = await fetch(`/api/admin-data?round=${r0}`).then((r) => r.json());
     setScheduleRows(r.schedule || []);
     setResults(r.results || []);
-    setHasSchedule(r.hasSchedule || false);
+  }
+  async function loadTracker() {
+    const r = await fetch("/api/tracker").then((r) => r.json());
+    setAllSchedule(r.schedule || []);
   }
 
   useEffect(() => {
@@ -54,9 +57,9 @@ export default function AdminPage() {
   }, []);
   useEffect(() => {
     if (session?.loggedIn) loadAdminData(round);
-    setSwapA("");
-    setSwapB("");
-    setSwapMsg("");
+    setMmPlayer("");
+    setMmGame("");
+    setMmMsg("");
   }, [round]);
 
   async function submitSetup() {
@@ -93,7 +96,6 @@ export default function AdminPage() {
   }
   async function addPlayer() {
     if (!name.trim()) return;
-    setLateMsg("");
     const r = await fetch("/api/players", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -106,20 +108,6 @@ export default function AdminPage() {
     setName("");
     setImage(null);
     loadPlayers();
-    if (r.late) {
-      if (r.gamesAssigned === 0) {
-        setLateMsg(
-          `${r.player.name} was added, but every remaining round is already full or underway — they weren't slotted into any games.`
-        );
-      } else if (r.gamesAssigned === r.totalGames) {
-        setLateMsg(`${r.player.name} added as a late arrival and slotted into all ${r.totalGames} games.`);
-      } else {
-        setLateMsg(
-          `${r.player.name} added as a late arrival — slotted into ${r.gamesAssigned} of ${r.totalGames} games. Missed: ${r.missedGames.join(", ")}.`
-        );
-      }
-      loadAdminData(round);
-    }
   }
   async function removePlayer(id) {
     await fetch(`/api/players?id=${id}`, { method: "DELETE" });
@@ -168,29 +156,33 @@ export default function AdminPage() {
       body: JSON.stringify({ id, name: currentName }),
     });
   }
-  async function generate() {
-    if (hasSchedule && !confirm("This replaces the current schedule and clears all recorded results. Continue?")) return;
-    setGenerating(true);
-    await fetch("/api/generate-schedule", { method: "POST" }).then((r) => r.json());
-    setGenerating(false);
-    loadAdminData(round);
-  }
-  async function doSwap() {
-    if (!swapA || !swapB || swapA === swapB) return;
-    setSwapMsg("");
-    const r = await fetch("/api/swap-schedule", {
+  async function assignPlayer() {
+    if (!mmPlayer || !mmGame) return;
+    setMmMsg("");
+    const r = await fetch("/api/matchmake", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ round, playerIdA: swapA, playerIdB: swapB }),
+      body: JSON.stringify({ round, gameId: mmGame, playerId: mmPlayer }),
     }).then((r) => r.json());
     if (r.error) {
-      setSwapMsg(r.error);
+      setMmMsg(r.error);
       return;
     }
-    setSwapA("");
-    setSwapB("");
-    setSwapMsg("Swapped.");
+    setMmPlayer("");
+    setMmGame("");
     loadAdminData(round);
+    loadTracker();
+  }
+  async function unassignPlayer(gameId, playerId) {
+    const r = await fetch(`/api/matchmake?round=${round}&gameId=${gameId}&playerId=${playerId}`, {
+      method: "DELETE",
+    }).then((r) => r.json());
+    if (r.error) {
+      alert(r.error);
+      return;
+    }
+    loadAdminData(round);
+    loadTracker();
   }
 
   if (!session) return <div className="wrap"><Nav /><div className="panel">Loading…</div></div>;
@@ -237,11 +229,19 @@ export default function AdminPage() {
     resultLookup[r.game_id] = resultLookup[r.game_id] || {};
     resultLookup[r.game_id][r.player_id] = r.placement;
   });
-  const gameNameById = {};
-  games.forEach((g) => (gameNameById[g.id] = g.name));
-  const swappableRows = scheduleRows.filter(
-    (row) => !resultLookup[row.game_id] || Object.keys(resultLookup[row.game_id]).length === 0
-  );
+
+  const playedGamesByPlayer = {};
+  const assignedThisRound = new Set();
+  allSchedule.forEach((row) => {
+    playedGamesByPlayer[row.player_id] = playedGamesByPlayer[row.player_id] || new Set();
+    playedGamesByPlayer[row.player_id].add(row.game_id);
+    if (row.round === round) assignedThisRound.add(row.player_id);
+  });
+
+  const unassignedPlayers = players.filter((p) => !assignedThisRound.has(p.id));
+  const availableGames = mmPlayer
+    ? games.filter((g) => !playedGamesByPlayer[mmPlayer]?.has(g.id) && (byGame[g.id] || []).length < 4)
+    : [];
 
   return (
     <div className="wrap">
@@ -250,20 +250,11 @@ export default function AdminPage() {
       <div className="panel">
         <h2>Combatants ({players.length} / 36)</h2>
         <p className="hint">
-          Add each player's name and optional photo. Fewer than 36 is fine — unused seats show as
-          empty; if a game round has fewer than 4 real players, the schedule auto-fills the rest
-          with filler slots. Click <strong>Edit</strong> on any combatant to rename them or add/change
-          their photo at any time — this never touches the schedule or recorded results.
-          {hasSchedule && (
-            <>
-              {" "}Since the schedule's already generated, adding someone now treats them as a{" "}
-              <strong>late arrival</strong>: they'll automatically take over filler seats in
-              whichever rounds haven't started yet, playing as many games as still have room —
-              possibly fewer than 9 if some rounds are already underway.
-            </>
-          )}
+          Add each player's name and optional photo. Use Matchmaking below to place them into a
+          game once they're actually here — there's no fixed schedule to generate anymore. Click{" "}
+          <strong>Edit</strong> on any combatant to rename them or add/change their photo at any
+          time.
         </p>
-        {lateMsg && <div className="msg">{lateMsg}</div>}
         <input type="text" placeholder="Player name" value={name} onChange={(e) => setName(e.target.value)} />
         <input type="file" accept="image/*" onChange={onFile} />
         <button className="btn" onClick={addPlayer}>Add Player</button>
@@ -319,94 +310,121 @@ export default function AdminPage() {
       </div>
 
       <div className="panel">
-        <h2>Schedule</h2>
+        <h2>Matchmaking — Round {round + 1}</h2>
         <p className="hint">
-          Generates 9 rounds so every player plays every one of the 9 games exactly once, one game
-          per round, with all 9 games running simultaneously each round. The generator tries hard
-          to avoid repeatedly pairing the same players together, but with 36 players across 9
-          rounds a handful of repeat pairings is normal and expected.
+          Place whoever's actually present into a game for this round. A player can't be placed
+          into a game they've already played, or into a game that's already full (4), or into two
+          games in the same round.
         </p>
-        <button className="btn gold" onClick={generate} disabled={generating}>
-          {generating ? "Generating…" : hasSchedule ? "Regenerate Schedule" : "Generate Schedule"}
-        </button>
+        <div className="round-selector">
+          {games.map((_, r) => (
+            <button key={r} className={round === r ? "active" : ""} onClick={() => setRound(r)}>
+              Round {r + 1}
+            </button>
+          ))}
+        </div>
+        <div className="swap-row">
+          <select value={mmPlayer} onChange={(e) => { setMmPlayer(e.target.value); setMmGame(""); }}>
+            <option value="">Pick a present player…</option>
+            {unassignedPlayers.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <span>→</span>
+          <select value={mmGame} onChange={(e) => setMmGame(e.target.value)} disabled={!mmPlayer}>
+            <option value="">Pick a game…</option>
+            {availableGames.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+          <button className="btn small gold" onClick={assignPlayer} disabled={!mmPlayer || !mmGame}>
+            Assign
+          </button>
+        </div>
+        {mmPlayer && availableGames.length === 0 && (
+          <div className="msg err">This player has already played every game, or all remaining games are full this round.</div>
+        )}
+        {mmMsg && <div className="msg err">{mmMsg}</div>}
+        {unassignedPlayers.length === 0 && players.length > 0 && (
+          <div className="hint" style={{ marginTop: 10 }}>Everyone's already placed into a game this round.</div>
+        )}
       </div>
 
-      {hasSchedule && (
-        <div className="panel">
-          <h2>Record Match Results</h2>
-          <p className="hint">
-            Each game master records their own game's results, per round. Selecting all four
-            placements saves automatically and updates the leaderboard.
-          </p>
-          <div className="round-selector">
-            {games.map((_, r) => (
-              <button key={r} className={round === r ? "active" : ""} onClick={() => setRound(r)}>
-                Round {r + 1}
-              </button>
-            ))}
-          </div>
-
-          <div className="swap-tool">
-            <label>Reassign a player's game this round</label>
-            <p className="hint" style={{ marginTop: 2 }}>
-              Swaps who's playing what for Round {round + 1} — only works for matches that haven't
-              recorded a result yet.
-            </p>
-            <div className="swap-row">
-              <select value={swapA} onChange={(e) => setSwapA(e.target.value)}>
-                <option value="">Move this player…</option>
-                {swappableRows.map((row) => (
-                  <option key={row.player_id} value={row.player_id}>
-                    {row.players?.is_filler ? "(filler)" : row.players?.name} — {gameNameById[row.game_id] || "?"}
-                  </option>
+      <div className="panel">
+        <h2>Tracker</h2>
+        <p className="hint">Games each combatant has already played (any round).</p>
+        {players.length === 0 ? (
+          <div className="empty">No combatants yet.</div>
+        ) : (
+          <div className="tracker-wrap">
+            <table className="tracker-table">
+              <thead>
+                <tr>
+                  <th>Combatant</th>
+                  {games.map((g) => (
+                    <th key={g.id} title={g.name}>{g.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.name}</td>
+                    {games.map((g) => (
+                      <td key={g.id} className={playedGamesByPlayer[p.id]?.has(g.id) ? "played" : ""}>
+                        {playedGamesByPlayer[p.id]?.has(g.id) ? "✓" : ""}
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </select>
-              <span>⇄</span>
-              <select value={swapB} onChange={(e) => setSwapB(e.target.value)}>
-                <option value="">…swap with this one</option>
-                {swappableRows.map((row) => (
-                  <option key={row.player_id} value={row.player_id}>
-                    {row.players?.is_filler ? "(filler)" : row.players?.name} — {gameNameById[row.game_id] || "?"}
-                  </option>
-                ))}
-              </select>
-              <button className="btn small gold" onClick={doSwap} disabled={!swapA || !swapB || swapA === swapB}>
-                Swap
-              </button>
-            </div>
-            {swapMsg && <div className={"msg" + (swapMsg === "Swapped." ? "" : " err")}>{swapMsg}</div>}
+              </tbody>
+            </table>
           </div>
+        )}
+      </div>
 
-          <div className="match-grid">
-            {games.map((g) => (
-              <MatchCard
-                key={g.id}
-                game={g}
-                round={round}
-                group={byGame[g.id] || []}
-                existing={resultLookup[g.id] || {}}
-                onSaved={() => loadAdminData(round)}
-              />
-            ))}
-          </div>
+      <div className="panel">
+        <h2>Record Match Results</h2>
+        <p className="hint">
+          Each game master records their own game's results, per round. Selecting a placement for
+          everyone currently assigned saves automatically and updates the leaderboard.
+        </p>
+        <div className="round-selector">
+          {games.map((_, r) => (
+            <button key={r} className={round === r ? "active" : ""} onClick={() => setRound(r)}>
+              Round {r + 1}
+            </button>
+          ))}
         </div>
-      )}
+        <div className="match-grid">
+          {games.map((g) => (
+            <MatchCard
+              key={g.id}
+              game={g}
+              round={round}
+              group={byGame[g.id] || []}
+              existing={resultLookup[g.id] || {}}
+              onSaved={() => { loadAdminData(round); loadTracker(); }}
+              onUnassign={(playerId) => unassignPlayer(g.id, playerId)}
+            />
+          ))}
+        </div>
+      </div>
 
       <button className="btn ghost" onClick={logout}>Log Out</button>
     </div>
   );
 }
 
-function MatchCard({ game, round, group, existing, onSaved }) {
+function MatchCard({ game, round, group, existing, onSaved, onUnassign }) {
   const [sel, setSel] = useState(() => ({ ...existing }));
-  const done = Object.keys(existing).length === 4 && group.filter((g) => !g.players?.is_filler).length <= Object.keys(existing).length;
+  const done = group.length > 0 && Object.keys(existing).length === group.length;
 
   async function save() {
     const placements = {};
     let valid = true;
     const used = new Set();
     group.forEach((row) => {
-      if (row.players?.is_filler) return;
       const val = sel[row.player_id];
       if (!val || used.has(val)) {
         valid = false;
@@ -416,7 +434,7 @@ function MatchCard({ game, round, group, existing, onSaved }) {
       placements[row.player_id] = parseInt(val, 10);
     });
     if (!valid) {
-      alert("Assign a unique place (1st-4th) to every real player before saving.");
+      alert("Assign a unique place to every player before saving.");
       return;
     }
     const r = await fetch("/api/results", {
@@ -432,24 +450,29 @@ function MatchCard({ game, round, group, existing, onSaved }) {
     <div className={"match-card" + (done ? " done" : "")}>
       <h3>{game.name} — Round {round + 1}</h3>
       {group.length === 0 ? (
-        <div className="empty">No players scheduled this round.</div>
+        <div className="empty">No players placed here this round.</div>
       ) : (
         <>
           {group.map((row) => (
             <div className="place-row" key={row.player_id}>
-              <div className="placelabel">{row.players?.is_filler ? "(filler)" : row.players?.name}</div>
+              <div className="placelabel">{row.players?.name}</div>
               <select
-                disabled={row.players?.is_filler}
                 value={sel[row.player_id] || ""}
                 onChange={(e) => setSel((s) => ({ ...s, [row.player_id]: e.target.value }))}
               >
                 <option value="">Place…</option>
-                {[1, 2, 3, 4].map((n) => (
-                  <option key={n} value={n}>
-                    {n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : "4th"} ({PLACE_WOUNDS[n]} wound{PLACE_WOUNDS[n] > 1 ? "s" : ""})
-                  </option>
-                ))}
+                {Array.from({ length: group.length }).map((_, i) => {
+                  const n = i + 1;
+                  return (
+                    <option key={n} value={n}>
+                      {PLACE_LABEL[n]} ({PLACE_WOUNDS[n]} wound{PLACE_WOUNDS[n] > 1 ? "s" : ""})
+                    </option>
+                  );
+                })}
               </select>
+              {!existing[row.player_id] && (
+                <button className="btn small ghost" onClick={() => onUnassign(row.player_id)}>✕</button>
+              )}
             </div>
           ))}
           <button className="btn save" style={{ marginTop: 8, width: "100%" }} onClick={save}>

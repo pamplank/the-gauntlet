@@ -103,12 +103,16 @@ table.lb tr:nth-child(3) .rank.top3{background:linear-gradient(155deg,#e3a476,va
 .game-card .slot:last-child{border-bottom:none;}
 .game-card .slot .filler{font-style:italic;opacity:.6;}
 .round-selector{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
-.swap-tool{background:var(--bg2);border:1px solid var(--line);padding:14px 16px;margin-bottom:16px;}
-.swap-tool label{color:var(--bone-dim);font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:0;}
 .swap-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;}
 .swap-row select{flex:1;min-width:180px;margin-bottom:0;}
 .swap-row span{color:var(--bone-dim);}
-.swap-tool .msg{margin:10px 0 0;}
+.tracker-wrap{overflow-x:auto;}
+.tracker-table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap;}
+.tracker-table th, .tracker-table td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:center;}
+.tracker-table th{color:var(--bone-dim);font-size:11px;letter-spacing:.03em;text-transform:uppercase;font-weight:normal;max-width:110px;overflow:hidden;text-overflow:ellipsis;}
+.tracker-table td:first-child, .tracker-table th:first-child{text-align:left;position:sticky;left:0;background:var(--panel);}
+.tracker-table td.played{color:var(--good);font-weight:bold;}
+.tracker-table tbody tr:hover td{background:rgba(219,168,87,.05);}
 .round-selector a, .round-selector button{background:var(--bg2);border:1px solid var(--line);color:var(--bone-dim);padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s ease;}
 .round-selector a:hover, .round-selector button:hover{color:var(--bone);border-color:var(--bone-dim);}
 .round-selector a.active, .round-selector button.active{border-color:var(--gold);color:var(--gold);background:rgba(219,168,87,.1);}
