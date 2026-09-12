@@ -544,7 +544,7 @@ export default function AdminPage() {
                       const on = playedGamesByPlayer[p.id]?.has(g.id);
                       return (
                         <td key={g.id} className={scarceIds.has(g.id) ? "scarce-col" : ""}>
-                          {on && <span className="mark-yes">✓</span>}
+                          {on ? <span className="mark-yes">✓</span> : <span className="mark-no"></span>}
                         </td>
                       );
                     })}

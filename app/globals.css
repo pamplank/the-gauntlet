@@ -134,6 +134,7 @@ table.lb tr:nth-child(3) .rank.top3{background:linear-gradient(155deg,#e3a476,va
 .tracker-table td:first-child, .tracker-table th:first-child{text-align:left;position:sticky;left:0;background:var(--panel);z-index:1;}
 .tracker-table td.scarce-col{background:rgba(221,77,133,.06);}
 .tracker-table .mark-yes{display:inline-flex;width:18px;height:18px;border-radius:50%;background:linear-gradient(155deg,#7bc478,var(--good) 65%,var(--good-dim));align-items:center;justify-content:center;color:#12240f;font-size:10px;font-weight:700;}
+.tracker-table .mark-no{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--line);}
 .tracker-name{display:flex;align-items:center;gap:8px;}
 .tracker-table tbody tr:hover td{background:rgba(219,168,87,.05);}
 .tracker-table tbody tr:hover td.scarce-col{background:rgba(221,77,133,.1);}
