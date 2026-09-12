@@ -34,11 +34,14 @@ export async function POST(req) {
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // If a schedule already exists, this is a late arrival: slot them into as
-  // many still-unplayed games as possible, without touching any (round, game)
-  // that already has a recorded result. A game may have an open filler seat
-  // to take over, or — since schedules now only staff games real players are
-  // actually in — no seats at all yet, in which case we just add them fresh.
+  // If a schedule already exists, this is a late arrival. Rather than
+  // scattering them into whatever open seat happens to exist each round
+  // (which can bounce them between a different group every time), prefer
+  // joining ONE existing short-handed table across all of its still-open
+  // rounds — same tablemates the whole way through, just like everyone
+  // else. Only if no table has room do we start a brand-new table for
+  // them, padded with fresh filler seats, so the *next* late arrival has
+  // somewhere consistent to join too.
   const { data: scheduleExists } = await supabaseAdmin.from("schedule").select("round").limit(1);
   if (!scheduleExists || scheduleExists.length === 0) {
     return NextResponse.json({ player, late: false });
@@ -61,41 +64,71 @@ export async function POST(req) {
     if (row.players?.is_filler && !occupancy[key].fillerId) occupancy[key].fillerId = row.player_id;
   });
 
-  const candidates = [];
+  // Every filler seat belongs to exactly one table's rotation, and shows up
+  // once per still-open round of that table — so grouping by filler ID
+  // reconstructs "which seats belong to the same table" for free.
+  const fillerGroups = {};
+  const emptySlots = [];
   for (let r = 0; r < totalRounds; r++) {
     for (const g of games || []) {
       const key = `${r}|${g.id}`;
       if (locked.has(key)) continue;
       const info = occupancy[key];
       if (info?.fillerId) {
-        candidates.push({ round: r, gameId: g.id, mode: "update", fillerPlayerId: info.fillerId });
+        fillerGroups[info.fillerId] = fillerGroups[info.fillerId] || [];
+        fillerGroups[info.fillerId].push({ round: r, gameId: g.id });
       } else if (!info || info.count < 4) {
-        candidates.push({ round: r, gameId: g.id, mode: "insert" });
+        emptySlots.push({ round: r, gameId: g.id });
       }
     }
   }
 
-  const assignments = matchLateArrivalSeats(candidates);
-  for (const a of assignments) {
-    if (a.mode === "update") {
+  let assignedSlots = [];
+  const bestFillerId = Object.keys(fillerGroups).sort((a, b) => fillerGroups[b].length - fillerGroups[a].length)[0];
+
+  if (bestFillerId) {
+    // Join that one table for the rest of the season.
+    assignedSlots = fillerGroups[bestFillerId];
+    for (const slot of assignedSlots) {
       await supabaseAdmin
         .from("schedule")
         .update({ player_id: player.id })
-        .eq("round", a.round)
-        .eq("game_id", a.gameId)
-        .eq("player_id", a.fillerPlayerId);
-    } else {
-      await supabaseAdmin.from("schedule").insert({ round: a.round, game_id: a.gameId, player_id: player.id });
+        .eq("round", slot.round)
+        .eq("game_id", slot.gameId)
+        .eq("player_id", bestFillerId);
+    }
+  } else if (emptySlots.length > 0) {
+    // No table has room — start a new one, seating them alongside three
+    // fresh filler placeholders so the next late arrival finds an open
+    // table here instead of scattering further.
+    assignedSlots = matchLateArrivalSeats(emptySlots);
+    const { data: newFillers, error: fErr } = await supabaseAdmin
+      .from("players")
+      .insert([
+        { name: "Filler Slot", is_filler: true },
+        { name: "Filler Slot", is_filler: true },
+        { name: "Filler Slot", is_filler: true },
+      ])
+      .select("id");
+    if (fErr) return NextResponse.json({ error: fErr.message }, { status: 500 });
+    const rows = [];
+    for (const slot of assignedSlots) {
+      rows.push({ round: slot.round, game_id: slot.gameId, player_id: player.id });
+      (newFillers || []).forEach((f) => rows.push({ round: slot.round, game_id: slot.gameId, player_id: f.id }));
+    }
+    if (rows.length > 0) {
+      const { error: insErr } = await supabaseAdmin.from("schedule").insert(rows);
+      if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
     }
   }
 
-  const assignedGameIds = new Set(assignments.map((a) => a.gameId));
+  const assignedGameIds = new Set(assignedSlots.map((a) => a.gameId));
   const missedGames = (games || []).filter((g) => !assignedGameIds.has(g.id)).map((g) => g.name);
 
   return NextResponse.json({
     player,
     late: true,
-    gamesAssigned: assignments.length,
+    gamesAssigned: assignedSlots.length,
     totalGames: (games || []).length,
     missedGames,
   });
