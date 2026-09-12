@@ -17,6 +17,7 @@ export default function AdminPage() {
   const [name, setName] = useState("");
   const [image, setImage] = useState(null);
   const [generating, setGenerating] = useState(false);
+  const [lateMsg, setLateMsg] = useState("");
 
   async function loadSession() {
     const r = await fetch("/api/session").then((r) => r.json());
@@ -83,6 +84,7 @@ export default function AdminPage() {
   }
   async function addPlayer() {
     if (!name.trim()) return;
+    setLateMsg("");
     const r = await fetch("/api/players", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -95,6 +97,20 @@ export default function AdminPage() {
     setName("");
     setImage(null);
     loadPlayers();
+    if (r.late) {
+      if (r.gamesAssigned === 0) {
+        setLateMsg(
+          `${r.player.name} was added, but every remaining round is already full or underway — they weren't slotted into any games.`
+        );
+      } else if (r.gamesAssigned === r.totalGames) {
+        setLateMsg(`${r.player.name} added as a late arrival and slotted into all ${r.totalGames} games.`);
+      } else {
+        setLateMsg(
+          `${r.player.name} added as a late arrival — slotted into ${r.gamesAssigned} of ${r.totalGames} games. Missed: ${r.missedGames.join(", ")}.`
+        );
+      }
+      loadAdminData(round);
+    }
   }
   async function removePlayer(id) {
     await fetch(`/api/players?id=${id}`, { method: "DELETE" });
@@ -173,7 +189,16 @@ export default function AdminPage() {
           Add each player's name and optional photo. Fewer than 36 is fine — unused seats show as
           empty; if a game round has fewer than 4 real players, the schedule auto-fills the rest
           with filler slots.
+          {hasSchedule && (
+            <>
+              {" "}Since the schedule's already generated, adding someone now treats them as a{" "}
+              <strong>late arrival</strong>: they'll automatically take over filler seats in
+              whichever rounds haven't started yet, playing as many games as still have room —
+              possibly fewer than 9 if some rounds are already underway.
+            </>
+          )}
         </p>
+        {lateMsg && <div className="msg">{lateMsg}</div>}
         <input type="text" placeholder="Player name" value={name} onChange={(e) => setName(e.target.value)} />
         <input type="file" accept="image/*" onChange={onFile} />
         <button className="btn" onClick={addPlayer}>Add Player</button>
