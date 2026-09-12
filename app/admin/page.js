@@ -21,6 +21,9 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editImage, setEditImage] = useState(null);
+  const [swapA, setSwapA] = useState("");
+  const [swapB, setSwapB] = useState("");
+  const [swapMsg, setSwapMsg] = useState("");
 
   async function loadSession() {
     const r = await fetch("/api/session").then((r) => r.json());
@@ -51,6 +54,9 @@ export default function AdminPage() {
   }, []);
   useEffect(() => {
     if (session?.loggedIn) loadAdminData(round);
+    setSwapA("");
+    setSwapB("");
+    setSwapMsg("");
   }, [round]);
 
   async function submitSetup() {
@@ -169,6 +175,23 @@ export default function AdminPage() {
     setGenerating(false);
     loadAdminData(round);
   }
+  async function doSwap() {
+    if (!swapA || !swapB || swapA === swapB) return;
+    setSwapMsg("");
+    const r = await fetch("/api/swap-schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ round, playerIdA: swapA, playerIdB: swapB }),
+    }).then((r) => r.json());
+    if (r.error) {
+      setSwapMsg(r.error);
+      return;
+    }
+    setSwapA("");
+    setSwapB("");
+    setSwapMsg("Swapped.");
+    loadAdminData(round);
+  }
 
   if (!session) return <div className="wrap"><Nav /><div className="panel">Loading…</div></div>;
 
@@ -214,6 +237,11 @@ export default function AdminPage() {
     resultLookup[r.game_id] = resultLookup[r.game_id] || {};
     resultLookup[r.game_id][r.player_id] = r.placement;
   });
+  const gameNameById = {};
+  games.forEach((g) => (gameNameById[g.id] = g.name));
+  const swappableRows = scheduleRows.filter(
+    (row) => !resultLookup[row.game_id] || Object.keys(resultLookup[row.game_id]).length === 0
+  );
 
   return (
     <div className="wrap">
@@ -317,6 +345,38 @@ export default function AdminPage() {
               </button>
             ))}
           </div>
+
+          <div className="swap-tool">
+            <label>Reassign a player's game this round</label>
+            <p className="hint" style={{ marginTop: 2 }}>
+              Swaps who's playing what for Round {round + 1} — only works for matches that haven't
+              recorded a result yet.
+            </p>
+            <div className="swap-row">
+              <select value={swapA} onChange={(e) => setSwapA(e.target.value)}>
+                <option value="">Move this player…</option>
+                {swappableRows.map((row) => (
+                  <option key={row.player_id} value={row.player_id}>
+                    {row.players?.is_filler ? "(filler)" : row.players?.name} — {gameNameById[row.game_id] || "?"}
+                  </option>
+                ))}
+              </select>
+              <span>⇄</span>
+              <select value={swapB} onChange={(e) => setSwapB(e.target.value)}>
+                <option value="">…swap with this one</option>
+                {swappableRows.map((row) => (
+                  <option key={row.player_id} value={row.player_id}>
+                    {row.players?.is_filler ? "(filler)" : row.players?.name} — {gameNameById[row.game_id] || "?"}
+                  </option>
+                ))}
+              </select>
+              <button className="btn small gold" onClick={doSwap} disabled={!swapA || !swapB || swapA === swapB}>
+                Swap
+              </button>
+            </div>
+            {swapMsg && <div className={"msg" + (swapMsg === "Swapped." ? "" : " err")}>{swapMsg}</div>}
+          </div>
+
           <div className="match-grid">
             {games.map((g) => (
               <MatchCard
