@@ -6,6 +6,8 @@ import SectionLabel from "./SectionLabel";
 import Reveal from "./Reveal";
 import GamesBrowser from "./games/GamesBrowser";
 import WeeksList from "./weeks/WeeksList";
+import PhotoRibbon from "./PhotoRibbon";
+import { photoUrl, RIBBON_LIMIT } from "../lib/photos";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +39,16 @@ export default async function HomePage() {
     activeBooked = count || 0;
   }
 
+  const { data: shots } = await supabaseAdmin
+    .from("photos")
+    .select("*")
+    .order("sort_order")
+    .limit(RIBBON_LIMIT);
+  const ribbonPhotos = (shots || []).map((p) => ({
+    ...p,
+    url: photoUrl(supabaseAdmin, p.path),
+  }));
+
   const gameNames = (games || []).map((g) => g.name).filter(Boolean);
 
   return (
@@ -56,6 +68,8 @@ export default async function HomePage() {
           </div>
         </div>
       )}
+
+      <PhotoRibbon photos={ribbonPhotos} />
 
       <Reveal as="section" className="panel" id="about">
         <SectionLabel>What to expect</SectionLabel>

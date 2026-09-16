@@ -79,6 +79,9 @@ export default function AdminPage() {
   const [regFilter, setRegFilter] = useState("all");
   const [regMsg, setRegMsg] = useState("");
   const [openReg, setOpenReg] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  const [photoMsg, setPhotoMsg] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const activeWeek = weeks.find((w) => w.status === "booking" || w.status === "in_progress") || null;
   const weekId = activeWeek?.id || null;
@@ -183,6 +186,45 @@ export default function AdminPage() {
     if (r) setWeekBookings(r.bookings || []);
   }
 
+  async function loadPhotos() {
+    const r = await fetchJSON("/api/photos");
+    if (r) setPhotos(r.photos || []);
+  }
+
+  async function uploadPhotos(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = ""; // let the same file be picked again after a failure
+    if (files.length === 0) return;
+
+    setPhotoMsg("");
+    setUploading(true);
+    const fd = new FormData();
+    files.forEach((f) => fd.append("photos", f));
+
+    const r = await fetch("/api/photos", { method: "POST", body: fd })
+      .then((res) => res.json())
+      .catch(() => ({ error: "Upload failed — check your connection and try again." }));
+    setUploading(false);
+
+    if (r.error) {
+      setPhotoMsg(r.error);
+      return;
+    }
+    setPhotoMsg(`Added ${r.added} photo${r.added === 1 ? "" : "s"}.`);
+    loadPhotos();
+  }
+
+  async function deletePhoto(id) {
+    if (!confirm("Delete this photo? This can't be undone.")) return;
+    setPhotoMsg("");
+    const r = await fetch(`/api/photos?id=${id}`, { method: "DELETE" }).then((res) => res.json());
+    if (r.error) {
+      setPhotoMsg(r.error);
+      return;
+    }
+    loadPhotos();
+  }
+
   useEffect(() => {
     loadSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -208,6 +250,10 @@ export default function AdminPage() {
     if (session?.loggedIn) loadRegistrations(weekId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekId, session?.loggedIn]);
+  useEffect(() => {
+    if (session?.loggedIn) loadPhotos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.loggedIn]);
 
   async function submitSetup() {
     setErr("");
@@ -644,7 +690,12 @@ export default function AdminPage() {
                         </button>
                         <div style={{ fontSize: 12, color: "var(--bone-dim)" }}>{r.full_name}</div>
                       </td>
-                      <td style={{ fontSize: 13 }}>{r.contact_number}</td>
+                      <td style={{ fontSize: 13 }}>
+                        {r.contact_number}
+                        {r.email && (
+                          <div style={{ fontSize: 12, color: "var(--bone-dim)" }}>{r.email}</div>
+                        )}
+                      </td>
                       <td style={{ fontSize: 13, textTransform: "capitalize" }}>{r.payment_method}</td>
                       <td style={{ fontSize: 13 }}>{r.reference_number}</td>
                       <td>
@@ -681,6 +732,7 @@ export default function AdminPage() {
                 ["Age range", r.age_range],
                 ["Gender", r.gender],
                 ["Contact", r.contact_number],
+                ["Email", r.email],
                 ["Facebook", r.facebook],
                 ["Instagram", r.instagram],
                 ["Board game familiarity", r.familiarity ? `${r.familiarity} / 5` : null],
@@ -707,6 +759,53 @@ export default function AdminPage() {
               );
             })()}
           </div>
+        )}
+      </div>
+
+      <div className="panel">
+        <SectionLabel>Event photos</SectionLabel>
+        <h2>Photos</h2>
+        <p className="hint">
+          One pool of photos for the whole site — they show in the strip on the homepage. Upload
+          new ones whenever, delete the ones you're tired of. No redeploy needed.
+        </p>
+
+        {photoMsg && (
+          <div className={"msg " + (photoMsg.startsWith("Added") ? "ok" : "err")}>{photoMsg}</div>
+        )}
+
+        <div className="swap-row" style={{ marginBottom: 16 }}>
+          <label className="btn small gold" style={{ cursor: uploading ? "wait" : "pointer" }}>
+            {uploading ? "Uploading…" : "Add Photos"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              multiple
+              onChange={uploadPhotos}
+              disabled={uploading}
+              style={{ display: "none" }}
+            />
+          </label>
+        </div>
+
+        {photos.length === 0 ? (
+          <div className="empty">No photos yet.</div>
+        ) : (
+          <>
+            <p className="hint" style={{ marginBottom: 12 }}>
+              {photos.length} photo{photos.length === 1 ? "" : "s"} · shown in this order
+            </p>
+            <div className="photo-admin-grid">
+              {photos.map((p) => (
+                <figure className="photo-admin-cell" key={p.id}>
+                  <img src={p.url} alt="" loading="lazy" />
+                  <button className="btn small ghost" onClick={() => deletePhoto(p.id)}>
+                    Delete
+                  </button>
+                </figure>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

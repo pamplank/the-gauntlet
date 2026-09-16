@@ -70,7 +70,10 @@ h1,h2,h3{ font-family: var(--font-display), system-ui, sans-serif; letter-spacin
 a{color:var(--gold); text-decoration:none; transition:color .15s ease;}
 a:hover{color:var(--blood-bright); text-decoration:underline;}
 ::selection{background:var(--gold-dim); color:#1a1120;}
-.wrap{max-width:1180px;margin:0 auto;padding:28px 28px 80px;}
+/* overflow-x:clip contains the photo ribbon's full-window breakout. `hidden`
+   would work too, but it creates a scroll container and kills the sticky nav;
+   `clip` doesn't. */
+.wrap{max-width:1180px;margin:0 auto;padding:28px 28px 80px;overflow-x:clip;}
 @media (max-width:640px){ .wrap{padding:20px 20px 60px;} }
 header.top{
   position:sticky; top:14px; z-index:10;
@@ -257,6 +260,7 @@ table.lb tr:nth-child(3) .rank.top3{background:linear-gradient(155deg,#e3a476,va
 .place-row select{margin-bottom:0;}
 .msg{font-size:13px;padding:10px 12px;border:1px solid var(--gold-dim);background:rgba(219,168,87,.06);color:var(--gold);margin-bottom:14px;}
 .msg.err{border-color:var(--blood-bright);background:rgba(221,77,133,.1);color:var(--blood-bright);}
+.msg.ok{border-color:var(--good-dim);background:rgba(95,174,90,.1);color:var(--good);}
 .hint{font-size:15px;color:var(--bone-dim);margin-top:-6px;margin-bottom:32px;line-height:1.7;max-width:680px;}
 .empty{color:var(--bone-dim);font-size:13px;font-style:italic;padding:32px 0;text-align:center;}
 .empty::before{content:"⚔";display:block;font-size:20px;font-style:normal;opacity:.35;margin-bottom:8px;}
@@ -345,6 +349,44 @@ button.btn.big, a.btn.big{padding:17px 34px;font-size:17px;}
 /* Lift real content above the decorative grid — but never restack the grid
    itself, or it drops into flow and pushes the hero open. */
 .hero > *:not(.hero-grid){position:relative;z-index:1;}
+
+/* ── Photo ribbon: full-window strip of shots from the last event ── */
+.ribbon-block{padding:64px 0 8px;border-top:1px solid var(--line);}
+.ribbon-head{margin-bottom:24px;}
+.ribbon-head h2{
+  font-family:var(--font-display),system-ui,sans-serif;color:var(--bone);
+  font-size:clamp(24px,3.2vw,38px);line-height:1.08;margin:0;text-wrap:balance;
+}
+/* Break out of .wrap's max-width to the full window. */
+.ribbon{
+  width:100vw;margin-left:calc(50% - 50vw);overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
+}
+/* `reverse` rather than flipped keyframes — the -50% translate still has to
+   land exactly on the duplicated half for the loop to be seamless. */
+.ribbon-track{display:flex;width:max-content;gap:14px;animation:ribbonDrift 60s linear infinite reverse;}
+.ribbon:hover .ribbon-track{animation-play-state:paused;}
+.ribbon-item{
+  margin:0;flex:none;width:clamp(200px,21vw,310px);
+  border-radius:12px;overflow:hidden;border:1px solid var(--line);
+  background:var(--panel);
+}
+/* Fixed aspect so one portrait shot can't make the whole strip tall. */
+.ribbon-item img{display:block;width:100%;aspect-ratio:3 / 2;object-fit:cover;}
+@keyframes ribbonDrift{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+@media (prefers-reduced-motion: reduce){
+  .ribbon{overflow-x:auto;}
+  .ribbon-track{animation:none;}
+}
+
+/* Admin photo manager */
+.photo-admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+.photo-admin-cell{margin:0;display:flex;flex-direction:column;gap:8px;}
+.photo-admin-cell img{
+  display:block;width:100%;aspect-ratio:3 / 2;object-fit:cover;
+  border-radius:10px;border:1px solid var(--line);background:var(--bg2);
+}
 
 .marquee{
   overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
@@ -637,6 +679,16 @@ button.btn.big, a.btn.big{padding:17px 34px;font-size:17px;}
 }
 .reg-done h3{font-size:clamp(22px,3vw,30px);letter-spacing:0;margin-bottom:12px;color:var(--bone);}
 .reg-done p{color:var(--bone-dim);font-size:15px;line-height:1.7;max-width:56ch;margin:0 auto 24px;}
+.reg-discord{
+  border:1px solid var(--gold-dim);border-radius:18px;
+  background:rgba(219,168,87,.05);
+  padding:26px 24px;margin:0 auto 24px;max-width:56ch;
+}
+.reg-discord h4{
+  font-family:var(--font-display),system-ui,sans-serif;font-weight:700;
+  font-size:19px;color:var(--bone);margin:0 0 10px;
+}
+.reg-discord p{margin:0 auto 18px;font-size:14.5px;}
 
 @media (max-width:560px){
   .reg-block{padding:20px 16px;}
@@ -734,7 +786,56 @@ button.btn.big, a.btn.big{padding:17px 34px;font-size:17px;}
 .week-card h3{font-size:16px;color:var(--bone);}
 .week-card .hint{margin:4px 0 0;}
 .booked-count{font-size:12px;color:var(--bone-dim);}
-.site-footer{text-align:center;color:var(--gold-dim);opacity:.5;font-size:13px;padding:20px 0 32px;}
+/* ── Site footer ── */
+.site-footer{
+  max-width:1180px;margin:0 auto;padding:0 28px 40px;
+  border-top:1px solid var(--line);
+}
+.foot-grid{
+  display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.5fr) minmax(0,.7fr);
+  gap:44px;padding:52px 0 40px;align-items:start;
+}
+.foot-where h4{font-family:var(--font-display),system-ui,sans-serif;font-size:24px;color:var(--bone);margin:0 0 6px;}
+.foot-addr{margin:0 0 4px;color:var(--bone-dim);font-size:14.5px;}
+.foot-note{margin:0 0 16px;color:var(--bone-dim);font-size:13px;opacity:.8;}
+.foot-map{font-family:var(--font-display),system-ui,sans-serif;font-weight:600;font-size:14px;}
+.foot-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:26px;}
+.foot-links h4{
+  font-family:var(--font-body),system-ui,sans-serif;
+  font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);
+  margin:0 0 14px;font-weight:400;
+}
+.foot-links a{display:block;margin-bottom:10px;color:var(--bone-dim);font-size:14px;transition:color .15s ease;}
+.foot-links a:hover{color:var(--gold);text-decoration:none;}
+.foot-cta{text-align:right;}
+.foot-price{margin:0 0 14px;display:flex;gap:9px;align-items:baseline;justify-content:flex-end;}
+.foot-price s{
+  font-family:var(--font-display),system-ui,sans-serif;font-weight:700;font-size:17px;
+  color:var(--bone-dim);text-decoration-color:var(--blood-bright);text-decoration-thickness:2px;
+}
+.foot-price strong{font-family:var(--font-display),system-ui,sans-serif;font-weight:800;font-size:32px;color:var(--gold);}
+.foot-bar{
+  margin:0;border-top:1px solid var(--line);padding:18px 0 0;
+  font-size:12.5px;color:var(--bone-dim);text-align:center;
+}
+@media (max-width:900px){
+  .foot-grid{grid-template-columns:1fr;gap:32px;}
+  .foot-cta{text-align:left;}
+  .foot-price{justify-content:flex-start;}
+}
+@media (max-width:640px){
+  .site-footer{padding:0 20px 32px;}
+}
+
+/* ── Policies page ── */
+.policy{padding:30px 0;border-top:1px solid var(--line);}
+.policy h3{color:var(--bone);font-size:clamp(20px,2.5vw,26px);margin:0 0 16px;}
+.policy p{color:var(--bone-dim);font-size:15px;line-height:1.8;max-width:72ch;margin:0 0 14px;}
+.policy ul{margin:0;padding-left:20px;max-width:72ch;}
+.policy li{color:var(--bone-dim);font-size:15px;line-height:1.8;margin-bottom:12px;}
+.policy-consent{color:var(--bone) !important;font-weight:500;}
+/* Clear the sticky nav when arriving via a footer anchor. */
+#privacy,#cancellation,#safety{scroll-margin-top:96px;}
 
 @media (max-width:640px){
   .wrap{padding:18px 14px 48px;}

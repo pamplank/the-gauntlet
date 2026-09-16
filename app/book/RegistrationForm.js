@@ -11,6 +11,10 @@ import {
   PRIVACY_NOTICE,
   PRIVACY_CONSENT,
 } from "../../lib/registration";
+import { SOCIALS } from "../../lib/site";
+
+// Same source as the footer, so the invite link only ever lives in one file.
+const discord = SOCIALS.find((s) => s.label === "Discord" && s.url) || null;
 
 const STEPS = ["Privacy", "About you", "Your play", "Payment"];
 
@@ -20,6 +24,7 @@ const EMPTY = {
   ageRange: "",
   gender: "",
   contactNumber: "",
+  email: "",
   facebook: "",
   instagram: "",
   familiarity: "",
@@ -57,6 +62,12 @@ export default function RegistrationForm({ week, price, priceOriginal }) {
     if (which === 1) {
       if (!v.fullName.trim() || !v.nickname.trim() || !v.contactNumber.trim()) {
         return "Please fill in your full name, nickname and contact number.";
+      }
+      if (!v.email.trim()) return "Please enter your email address.";
+      // Deliberately loose: something@something.something. Anything stricter
+      // rejects valid addresses, and only sending mail proves an address works.
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) {
+        return "That email address doesn't look right — please check it.";
       }
       if (!v.ageRange || !v.gender) return "Please select your age range and gender.";
     }
@@ -128,6 +139,25 @@ export default function RegistrationForm({ week, price, priceOriginal }) {
           for <strong>{week.label}</strong>. Your spot isn't final until that's confirmed — if
           anything looks off with the payment we'll reach you on {v.contactNumber}.
         </p>
+
+        {discord && (
+          <div className="reg-discord">
+            <h4>One more thing — come say hi</h4>
+            <p>
+              Everyone playing hangs out on our Discord. Meet the people you&apos;ll be sat with,
+              ask anything before the day, and find out the moment the next week opens.
+            </p>
+            <a
+              className="btn gold pill"
+              href={discord.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Join the Discord <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        )}
+
         <a className="btn ghost pill" href="/weeks">See the week</a>
       </div>
     );
@@ -211,6 +241,18 @@ export default function RegistrationForm({ week, price, priceOriginal }) {
             <label className="reg-field">
               <span>Contact number <b>*</b></span>
               <input id="reg-contact" type="tel" value={v.contactNumber} onChange={set("contactNumber")} autoComplete="tel" />
+            </label>
+            <label className="reg-field">
+              <span>Email address <b>*</b></span>
+              <input
+                id="reg-email"
+                type="email"
+                value={v.email}
+                onChange={set("email")}
+                autoComplete="email"
+                inputMode="email"
+              />
+              <small>Where we'll send your confirmation and event details.</small>
             </label>
             <label className="reg-field">
               <span>Facebook profile / handle</span>

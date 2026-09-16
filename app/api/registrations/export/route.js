@@ -11,6 +11,7 @@ const COLUMNS = [
   ["age_range", "Age Range"],
   ["gender", "Gender"],
   ["contact_number", "Contact Number"],
+  ["email", "Email"],
   ["facebook", "Facebook"],
   ["instagram", "Instagram"],
   ["familiarity", "Board Game Familiarity"],

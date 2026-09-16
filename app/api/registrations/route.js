@@ -13,7 +13,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const REQUIRED_TEXT = ["fullName", "nickname", "contactNumber", "referenceNumber"];
+const REQUIRED_TEXT = ["fullName", "nickname", "contactNumber", "email", "referenceNumber"];
+
+// Deliberately loose: something@something.something. Anything stricter rejects
+// valid addresses, and only sending mail proves an address actually works.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req) {
   let form;
@@ -51,6 +55,10 @@ export async function POST(req) {
     if (!get(field)) {
       return NextResponse.json({ error: "Please fill in every required field." }, { status: 400 });
     }
+  }
+
+  if (!EMAIL_RE.test(get("email"))) {
+    return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
   }
 
   const ageRange = get("ageRange");
@@ -113,6 +121,7 @@ export async function POST(req) {
     age_range: ageRange,
     gender,
     contact_number: get("contactNumber"),
+    email: get("email").toLowerCase(),
     facebook: get("facebook") || null,
     instagram: get("instagram") || null,
     familiarity: parseInt(get("familiarity"), 10) || null,

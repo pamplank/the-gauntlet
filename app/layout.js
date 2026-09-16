@@ -2,6 +2,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import CustomCursor from "./CustomCursor";
+import SiteFooter from "./SiteFooter";
 
 // PP NeueBit ships as a single Bold cut. Declaring the range 100–900 maps every
 // font-weight in the CSS onto this one face, so the browser never synthesises a
@@ -40,7 +41,7 @@ export default function RootLayout({ children }) {
       <body>
         <CustomCursor />
         {children}
-        <footer className="site-footer">⚔</footer>
+        <SiteFooter />
       </body>
     </html>
   );
