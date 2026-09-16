@@ -6,15 +6,18 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req) {
   if (!isAuthed()) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
-  const { round, playerIds } = await req.json();
-  if (round === undefined || !Array.isArray(playerIds) || playerIds.length === 0) {
-    return NextResponse.json({ error: "round and playerIds required." }, { status: 400 });
+  const { round, playerIds, weekId } = await req.json();
+  if (round === undefined || !Array.isArray(playerIds) || playerIds.length === 0 || !weekId) {
+    return NextResponse.json({ error: "round, playerIds and weekId required." }, { status: 400 });
   }
 
   const { data: games } = await supabaseAdmin.from("games").select("id").order("sort_order");
   const gameIds = (games || []).map((g) => g.id);
 
-  const { data: allSched } = await supabaseAdmin.from("schedule").select("round,game_id,player_id");
+  const { data: allSched } = await supabaseAdmin
+    .from("schedule")
+    .select("round,game_id,player_id")
+    .eq("week_id", weekId);
 
   const playedGamesByPlayer = {};
   const occupancy = {};
@@ -32,7 +35,7 @@ export async function POST(req) {
   const { assignments, unplaced } = randomizeAssignments(candidates, playedGamesByPlayer, occupancy, gameIds);
 
   if (assignments.length > 0) {
-    const rows = assignments.map((a) => ({ round, game_id: a.gameId, player_id: a.playerId }));
+    const rows = assignments.map((a) => ({ round, game_id: a.gameId, player_id: a.playerId, week_id: weekId }));
     const { error } = await supabaseAdmin.from("schedule").insert(rows);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }

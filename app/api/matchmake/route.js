@@ -5,14 +5,15 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req) {
   if (!isAuthed()) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
-  const { round, gameId, playerId } = await req.json();
-  if (round === undefined || !gameId || !playerId) {
-    return NextResponse.json({ error: "round, gameId, playerId required." }, { status: 400 });
+  const { round, gameId, playerId, weekId } = await req.json();
+  if (round === undefined || !gameId || !playerId || !weekId) {
+    return NextResponse.json({ error: "round, gameId, playerId and weekId required." }, { status: 400 });
   }
 
   const { data: alreadyThisRound } = await supabaseAdmin
     .from("schedule")
     .select("game_id")
+    .eq("week_id", weekId)
     .eq("round", round)
     .eq("player_id", playerId)
     .maybeSingle();
@@ -23,23 +24,27 @@ export async function POST(req) {
   const { data: alreadyPlayed } = await supabaseAdmin
     .from("schedule")
     .select("round")
+    .eq("week_id", weekId)
     .eq("game_id", gameId)
     .eq("player_id", playerId)
     .maybeSingle();
   if (alreadyPlayed) {
-    return NextResponse.json({ error: "This player has already played that game." }, { status: 400 });
+    return NextResponse.json({ error: "This player has already played that game this week." }, { status: 400 });
   }
 
   const { count } = await supabaseAdmin
     .from("schedule")
     .select("player_id", { count: "exact", head: true })
+    .eq("week_id", weekId)
     .eq("round", round)
     .eq("game_id", gameId);
   if ((count || 0) >= 4) {
     return NextResponse.json({ error: "That game already has 4 players this round." }, { status: 400 });
   }
 
-  const { error } = await supabaseAdmin.from("schedule").insert({ round, game_id: gameId, player_id: playerId });
+  const { error } = await supabaseAdmin
+    .from("schedule")
+    .insert({ round, game_id: gameId, player_id: playerId, week_id: weekId });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
@@ -50,13 +55,15 @@ export async function DELETE(req) {
   const round = searchParams.get("round");
   const gameId = searchParams.get("gameId");
   const playerId = searchParams.get("playerId");
-  if (round === null || !gameId || !playerId) {
-    return NextResponse.json({ error: "round, gameId, playerId required." }, { status: 400 });
+  const weekId = searchParams.get("weekId");
+  if (round === null || !gameId || !playerId || !weekId) {
+    return NextResponse.json({ error: "round, gameId, playerId and weekId required." }, { status: 400 });
   }
 
   const { data: existingResult } = await supabaseAdmin
     .from("results")
     .select("placement")
+    .eq("week_id", weekId)
     .eq("round", round)
     .eq("game_id", gameId)
     .eq("player_id", playerId)
@@ -68,6 +75,7 @@ export async function DELETE(req) {
   const { error } = await supabaseAdmin
     .from("schedule")
     .delete()
+    .eq("week_id", weekId)
     .eq("round", round)
     .eq("game_id", gameId)
     .eq("player_id", playerId);

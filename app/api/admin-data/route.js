@@ -7,16 +7,20 @@ export async function GET(req) {
   if (!isAuthed()) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   const { searchParams } = new URL(req.url);
   const round = parseInt(searchParams.get("round") || "0", 10);
+  const weekId = searchParams.get("weekId");
+  if (!weekId) return NextResponse.json({ error: "weekId required." }, { status: 400 });
 
   const { data: games } = await supabaseAdmin.from("games").select("*").order("sort_order");
   const { data: schedule } = await supabaseAdmin
     .from("schedule")
     .select("round,game_id,player_id,players(name,is_filler)")
-    .eq("round", round);
+    .eq("round", round)
+    .eq("week_id", weekId);
   const { data: results } = await supabaseAdmin
     .from("results")
     .select("game_id,player_id,placement")
-    .eq("round", round);
+    .eq("round", round)
+    .eq("week_id", weekId);
 
   return NextResponse.json({
     games: games || [],

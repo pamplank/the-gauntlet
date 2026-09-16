@@ -1,98 +1,95 @@
 import { supabaseAdmin } from "../lib/db";
 import Nav from "./Nav";
+import LandingContent from "./LandingContent";
+import AboutSection from "./AboutSection";
+import SectionLabel from "./SectionLabel";
+import Reveal from "./Reveal";
+import GamesBrowser from "./games/GamesBrowser";
+import WeeksList from "./weeks/WeeksList";
 
 export const dynamic = "force-dynamic";
 
-function Avatar({ image, name }) {
-  if (image) return <img className="avatar" src={image} alt={name} />;
-  const initial = (name || "?").trim()[0]?.toUpperCase() || "?";
-  return <div className="avatar placeholder">{initial}</div>;
-}
+export default async function HomePage() {
+  const { data: weeks } = await supabaseAdmin
+    .from("weeks")
+    .select("*")
+    .order("opened_at", { ascending: false });
+  const activeWeek = (weeks || []).find((w) => w.status === "booking") || null;
 
-export default async function LeaderboardPage() {
-  const { data: players } = await supabaseAdmin
-    .from("players")
-    .select("id,name,image_url")
-    .eq("is_filler", false);
-  const { data: results } = await supabaseAdmin.from("results").select("player_id,placement");
-  const { data: games } = await supabaseAdmin.from("games").select("id");
+  const { data: games } = await supabaseAdmin.from("games").select("*").order("sort_order");
 
-  const stats = {};
-  (players || []).forEach((p) => {
-    stats[p.id] = {
-      id: p.id,
-      name: p.name,
-      image: p.image_url,
-      wounds: 0,
-      played: 0,
-      places: { 1: 0, 2: 0, 3: 0, 4: 0 },
-    };
+  const { data: bookings } = await supabaseAdmin.from("bookings").select("week_id");
+  const counts = {};
+  (bookings || []).forEach((b) => {
+    counts[b.week_id] = (counts[b.week_id] || 0) + 1;
   });
-  (results || []).forEach((r) => {
-    if (!stats[r.player_id]) return;
-    stats[r.player_id].wounds += r.placement;
-    stats[r.player_id].played += 1;
-    if (stats[r.player_id].places[r.placement] !== undefined) {
-      stats[r.player_id].places[r.placement] += 1;
-    }
-  });
-  const ranked = Object.values(stats).sort((a, b) => {
-    if (a.played === 0 && b.played === 0) return 0;
-    if (a.played === 0) return 1;
-    if (b.played === 0) return -1;
-    return a.wounds - b.wounds || b.played - a.played;
-  });
-  const totalGames = (games || []).length;
+
+  // Same source as /book: anything not rejected is holding a seat, verified or
+  // not. Counting the `bookings` table instead would show more seats free in
+  // the hero than the booking page offers.
+  let activeBooked = 0;
+  if (activeWeek) {
+    const { count } = await supabaseAdmin
+      .from("registrations")
+      .select("id", { count: "exact", head: true })
+      .eq("week_id", activeWeek.id)
+      .neq("status", "rejected");
+    activeBooked = count || 0;
+  }
+
+  const gameNames = (games || []).map((g) => g.name).filter(Boolean);
 
   return (
     <div className="wrap">
       <Nav />
-      <div className="panel">
-        <h2>Leaderboard</h2>
+
+      <LandingContent activeWeek={activeWeek} booked={activeBooked} />
+
+      {gameNames.length > 0 && (
+        <div className="marquee">
+          <div className="marquee-track">
+            {[...gameNames, ...gameNames].map((name, i) => (
+              <span className="marquee-item" key={i}>
+                ⚔ {name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Reveal as="section" className="panel" id="about">
+        <SectionLabel>What to expect</SectionLabel>
+        <h2>Your first Gauntlet</h2>
         <p className="hint">
-          Ranked by fewest wounds. 1st place = 1 wound, 2nd = 2, 3rd = 3, 4th = 4. Ties broken by
-          games played. Combatants who haven't played yet are listed last, not ranked first.
+          Never been to something like this? Here's exactly how the day runs, and the questions
+          people ask before their first one.
         </p>
-        {ranked.length === 0 ? (
-          <div className="empty">No combatants yet.</div>
+        <AboutSection />
+      </Reveal>
+
+      <Reveal as="section" className="panel" id="games">
+        <SectionLabel>The Arena</SectionLabel>
+        <h2>The Nine Games</h2>
+        <p className="hint">
+          Every combatant faces all nine. One game per round, four players at a time — finish
+          first and take a single wound, finish last and take four.
+        </p>
+        {!games || games.length === 0 ? (
+          <div className="empty">No games configured yet.</div>
         ) : (
-          <table className="lb">
-            <thead>
-              <tr>
-                <th></th>
-                <th>Combatant</th>
-                <th>Wounds</th>
-                <th title="1st place finishes">1st</th>
-                <th title="2nd place finishes">2nd</th>
-                <th title="3rd place finishes">3rd</th>
-                <th title="4th place finishes">4th</th>
-                <th>Games Played</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ranked.map((s, i) => (
-                <tr key={s.id}>
-                  <td className={"rank" + (i < 3 && s.played > 0 ? " top3" : "")}>{i + 1}</td>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <Avatar image={s.image} name={s.name} />
-                      <span>{s.name}</span>
-                    </div>
-                  </td>
-                  <td className="wounds">{s.wounds}</td>
-                  <td className="placecount">{s.places[1]}</td>
-                  <td className="placecount">{s.places[2]}</td>
-                  <td className="placecount">{s.places[3]}</td>
-                  <td className="placecount">{s.places[4]}</td>
-                  <td>
-                    {s.played} / {totalGames}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <GamesBrowser games={games} />
         )}
-      </div>
+      </Reveal>
+
+      <Reveal as="section" className="panel" id="weeks">
+        <SectionLabel>Weekly Gauntlet</SectionLabel>
+        <h2>Weeks</h2>
+        <p className="hint">
+          Every Gauntlet event, one week at a time. Each has its own leaderboard and schedule;
+          running totals live on the <a href="/players">Leaderboard</a>.
+        </p>
+        <WeeksList weeks={weeks || []} counts={counts} />
+      </Reveal>
     </div>
   );
 }

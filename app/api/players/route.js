@@ -18,14 +18,6 @@ export async function POST(req) {
   const { name, image } = await req.json();
   if (!name || !name.trim()) return NextResponse.json({ error: "Name is required." }, { status: 400 });
 
-  const { count } = await supabaseAdmin
-    .from("players")
-    .select("id", { count: "exact", head: true })
-    .eq("is_filler", false);
-  if ((count || 0) >= 36) {
-    return NextResponse.json({ error: "Roster is full at 36 players." }, { status: 400 });
-  }
-
   const { data: player, error } = await supabaseAdmin
     .from("players")
     .insert({ name: name.trim(), image_url: image || null, is_filler: false })

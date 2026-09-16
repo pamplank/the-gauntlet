@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import Nav from "../Nav";
+import SectionLabel from "../SectionLabel";
+import { artFor } from "../../lib/gameArt";
 
 const PLACE_WOUNDS = { 1: 1, 2: 2, 3: 3, 4: 4 };
 const PLACE_LABEL = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
@@ -66,6 +68,20 @@ export default function AdminPage() {
   const [randomSelected, setRandomSelected] = useState([]);
   const [randomMsg, setRandomMsg] = useState("");
   const [randomizing, setRandomizing] = useState(false);
+  const [weeks, setWeeks] = useState([]);
+  const [weekLabel, setWeekLabel] = useState("");
+  const [weekDate, setWeekDate] = useState("");
+  const [weekMsg, setWeekMsg] = useState("");
+  const [weekBookings, setWeekBookings] = useState([]);
+  const [addBookingName, setAddBookingName] = useState("");
+  const [addBookingMsg, setAddBookingMsg] = useState("");
+  const [registrations, setRegistrations] = useState([]);
+  const [regFilter, setRegFilter] = useState("all");
+  const [regMsg, setRegMsg] = useState("");
+  const [openReg, setOpenReg] = useState(null);
+
+  const activeWeek = weeks.find((w) => w.status === "booking" || w.status === "in_progress") || null;
+  const weekId = activeWeek?.id || null;
 
   // A single flaky fetch (cold serverless function, a dropped connection)
   // used to be able to break every load after it in the chain, silently —
@@ -93,8 +109,7 @@ export default function AdminPage() {
     if (r.loggedIn) {
       loadPlayers();
       loadGames();
-      loadAdminData(round);
-      loadTracker();
+      loadWeeks();
     }
   }
   async function loadPlayers() {
@@ -105,29 +120,94 @@ export default function AdminPage() {
     const r = await fetchJSON("/api/games");
     if (r) setGames(r.games || []);
   }
-  async function loadAdminData(r0) {
-    const r = await fetchJSON(`/api/admin-data?round=${r0}`);
+  async function loadAdminData(r0, wid) {
+    if (!wid) {
+      setScheduleRows([]);
+      setResults([]);
+      return;
+    }
+    const r = await fetchJSON(`/api/admin-data?round=${r0}&weekId=${wid}`);
     if (r) {
       setScheduleRows(r.schedule || []);
       setResults(r.results || []);
     }
   }
-  async function loadTracker() {
-    const r = await fetchJSON("/api/tracker");
+  async function loadTracker(wid) {
+    if (!wid) {
+      setAllSchedule([]);
+      return;
+    }
+    const r = await fetchJSON(`/api/tracker?weekId=${wid}`);
     if (r) setAllSchedule(r.schedule || []);
+  }
+  async function loadWeeks() {
+    const r = await fetchJSON("/api/weeks");
+    if (r) setWeeks(r.weeks || []);
+  }
+  async function loadRegistrations(wid) {
+    const r = await fetchJSON(`/api/registrations${wid ? `?weekId=${wid}` : ""}`);
+    if (r) setRegistrations(r.registrations || []);
+  }
+  async function setRegStatus(id, status) {
+    if (status === "rejected" && !confirm("Reject this registration? They won't be added to the roster.")) return;
+    setRegMsg("");
+    const r = await fetch("/api/registrations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    }).then((r) => r.json());
+    if (r.error) {
+      setRegMsg(r.error);
+      return;
+    }
+    loadRegistrations(weekId);
+    loadWeekBookings(weekId);
+    loadPlayers();
+  }
+  async function viewProof(id) {
+    setRegMsg("");
+    const r = await fetch(`/api/registrations/proof?id=${id}`).then((r) => r.json());
+    if (r.error) {
+      setRegMsg(r.error);
+      return;
+    }
+    window.open(r.url, "_blank", "noopener");
+  }
+
+  async function loadWeekBookings(weekId) {
+    if (!weekId) {
+      setWeekBookings([]);
+      return;
+    }
+    const r = await fetchJSON(`/api/bookings?weekId=${weekId}`);
+    if (r) setWeekBookings(r.bookings || []);
   }
 
   useEffect(() => {
     loadSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
-    if (session?.loggedIn) loadAdminData(round);
+    if (session?.loggedIn) {
+      loadAdminData(round, weekId);
+      loadTracker(weekId);
+    }
     setMmPlayer("");
     setMmGame("");
     setMmMsg("");
     setRandomSelected([]);
     setRandomMsg("");
-  }, [round]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round, weekId, session?.loggedIn]);
+  useEffect(() => {
+    if (session?.loggedIn && weekId) loadWeekBookings(weekId);
+    else setWeekBookings([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekId, session?.loggedIn]);
+  useEffect(() => {
+    if (session?.loggedIn) loadRegistrations(weekId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekId, session?.loggedIn]);
 
   async function submitSetup() {
     setErr("");
@@ -209,15 +289,16 @@ export default function AdminPage() {
     cancelEdit();
     loadPlayers();
   }
-  async function renameGame(id, newName) {
-    setGames((gs) => gs.map((g) => (g.id === id ? { ...g, name: newName } : g)));
+  function editGameField(id, field, value) {
+    setGames((gs) => gs.map((g) => (g.id === id ? { ...g, [field]: value } : g)));
   }
-  async function saveGameName(id, currentName) {
-    await fetch("/api/games", {
+  async function saveGame(id, patch) {
+    const r = await fetch("/api/games", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, name: currentName }),
-    });
+      body: JSON.stringify({ id, ...patch }),
+    }).then((r) => r.json());
+    if (r.error) alert(r.error);
   }
   async function assignPlayer() {
     if (!mmPlayer || !mmGame) return;
@@ -225,7 +306,7 @@ export default function AdminPage() {
     const r = await fetch("/api/matchmake", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ round, gameId: mmGame, playerId: mmPlayer }),
+      body: JSON.stringify({ round, gameId: mmGame, playerId: mmPlayer, weekId }),
     }).then((r) => r.json());
     if (r.error) {
       setMmMsg(r.error);
@@ -233,8 +314,8 @@ export default function AdminPage() {
     }
     setMmPlayer("");
     setMmGame("");
-    loadAdminData(round);
-    loadTracker();
+    loadAdminData(round, weekId);
+    loadTracker(weekId);
   }
   function toggleRandomSelect(id) {
     setRandomSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -246,7 +327,7 @@ export default function AdminPage() {
     const r = await fetch("/api/randomize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ round, playerIds: randomSelected }),
+      body: JSON.stringify({ round, playerIds: randomSelected, weekId }),
     }).then((r) => r.json());
     setRandomizing(false);
     if (r.error) {
@@ -263,19 +344,70 @@ export default function AdminPage() {
     }
     setRandomMsg(parts.join(" "));
     setRandomSelected([]);
-    loadAdminData(round);
-    loadTracker();
+    loadAdminData(round, weekId);
+    loadTracker(weekId);
   }
   async function unassignPlayer(gameId, playerId) {
-    const r = await fetch(`/api/matchmake?round=${round}&gameId=${gameId}&playerId=${playerId}`, {
-      method: "DELETE",
+    const q = `round=${round}&gameId=${gameId}&playerId=${playerId}&weekId=${weekId}`;
+    const r = await fetch(`/api/matchmake?${q}`, { method: "DELETE" }).then((r) => r.json());
+    if (r.error) {
+      alert(r.error);
+      return;
+    }
+    loadAdminData(round, weekId);
+    loadTracker(weekId);
+  }
+
+  async function openWeek() {
+    if (!weekLabel.trim()) return;
+    setWeekMsg("");
+    const r = await fetch("/api/weeks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label: weekLabel, eventDate: weekDate || null }),
+    }).then((r) => r.json());
+    if (r.error) {
+      setWeekMsg(r.error);
+      return;
+    }
+    setWeekLabel("");
+    setWeekDate("");
+    loadWeeks();
+  }
+  async function transitionWeek(id, status) {
+    if (status === "canceled" && !confirm("Cancel this week? This can't be undone.")) return;
+    const r = await fetch("/api/weeks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
     }).then((r) => r.json());
     if (r.error) {
       alert(r.error);
       return;
     }
-    loadAdminData(round);
-    loadTracker();
+    loadWeeks();
+  }
+  async function removeWeekBooking(id) {
+    if (!confirm("Remove this booking?")) return;
+    await fetch(`/api/bookings?id=${id}`, { method: "DELETE" });
+    loadWeekBookings(activeWeek?.id);
+    loadWeeks();
+  }
+  async function addBookingManually() {
+    if (!activeWeek || !addBookingName.trim()) return;
+    setAddBookingMsg("");
+    const r = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weekId: activeWeek.id, name: addBookingName.trim() }),
+    }).then((r) => r.json());
+    if (r.error) {
+      setAddBookingMsg(r.error);
+      return;
+    }
+    setAddBookingName("");
+    loadWeekBookings(activeWeek.id);
+    loadWeeks();
   }
 
   if (!session) return <div className="wrap"><Nav /><div className="panel">Loading…</div></div>;
@@ -348,17 +480,244 @@ export default function AdminPage() {
     .slice()
     .sort((a, b) => (playedGamesByPlayer[a.id]?.size || 0) - (playedGamesByPlayer[b.id]?.size || 0));
 
+  const pastWeeks = weeks.filter((w) => w.status === "completed" || w.status === "canceled");
+  const scopeLabel = activeWeek?.label || "No active week";
+
   return (
     <div className="wrap">
       <Nav />
 
       <div className="panel">
-        <h2>Combatants ({players.length} / 36)</h2>
+        <SectionLabel>Admin</SectionLabel>
+        <h2>Weeks</h2>
+        <p className="hint">
+          Open a week to let people book a spot on the public site. Matchmaking, the tracker and
+          results below all operate on whichever week is currently open or in progress.
+        </p>
+
+        {weekMsg && <div className="msg err">{weekMsg}</div>}
+
+        {activeWeek ? (
+          <div className="week-banner">
+            <div>
+              <strong>{activeWeek.label}</strong>{" "}
+              <span className="status-pill">
+                {activeWeek.status === "booking" ? "Booking Open" : "In Progress"}
+              </span>
+              <div className="hint" style={{ marginTop: 4 }}>
+                {weekBookings.length} / 36 booked
+              </div>
+            </div>
+            <div className="swap-row" style={{ marginTop: 8 }}>
+              {activeWeek.status === "booking" && (
+                <button className="btn small gold" onClick={() => transitionWeek(activeWeek.id, "in_progress")}>
+                  Close Booking &amp; Start Matchmaking
+                </button>
+              )}
+              {activeWeek.status === "in_progress" && (
+                <button className="btn small gold" onClick={() => transitionWeek(activeWeek.id, "completed")}>
+                  Complete Week
+                </button>
+              )}
+              <button className="btn small ghost" onClick={() => transitionWeek(activeWeek.id, "canceled")}>
+                Cancel Week
+              </button>
+            </div>
+
+            {activeWeek.status === "booking" && (
+              <div className="swap-row" style={{ marginTop: 12 }}>
+                <input
+                  type="text"
+                  list="admin-known-players"
+                  placeholder="Add a confirmed booking by name…"
+                  value={addBookingName}
+                  onChange={(e) => setAddBookingName(e.target.value)}
+                />
+                <datalist id="admin-known-players">
+                  {players.map((p) => (
+                    <option key={p.id} value={p.name} />
+                  ))}
+                </datalist>
+                <button className="btn small gold" onClick={addBookingManually} disabled={!addBookingName.trim()}>
+                  Add Booking
+                </button>
+              </div>
+            )}
+            {addBookingMsg && <div className="msg err" style={{ marginTop: 8 }}>{addBookingMsg}</div>}
+
+            {weekBookings.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                {weekBookings.map((b) => (
+                  <div className="player-row" key={b.id}>
+                    {b.players?.image_url ? (
+                      <img className="avatar tiny" src={b.players.image_url} />
+                    ) : (
+                      <div className="avatar tiny placeholder">{(b.players?.name || "?")[0]?.toUpperCase()}</div>
+                    )}
+                    <span className="name">{b.players?.name}</span>
+                    <button className="btn small ghost" onClick={() => removeWeekBooking(b.id)}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="swap-row">
+            <input
+              type="text"
+              placeholder="Week label (e.g. Week 12 — Sept 21)"
+              value={weekLabel}
+              onChange={(e) => setWeekLabel(e.target.value)}
+            />
+            <input type="date" value={weekDate} onChange={(e) => setWeekDate(e.target.value)} />
+            <button className="btn gold" onClick={openWeek}>Open New Week for Booking</button>
+          </div>
+        )}
+
+        {pastWeeks.length > 0 && (
+          <div className="hint" style={{ marginTop: 12 }}>
+            Past weeks:{" "}
+            {pastWeeks.map((w) => (
+              <a key={w.id} href={`/weeks/${w.id}`} style={{ marginRight: 10 }}>
+                {w.label} ({w.status})
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="panel">
+        <SectionLabel>Bookings</SectionLabel>
+        <h2>Registrations</h2>
+        <p className="hint">
+          Everyone who submitted the form on <a href="/book">Book a Spot</a>. Check the payment
+          proof, then confirm to add them to the roster — confirming creates or matches their
+          combatant record automatically.
+        </p>
+
+        {regMsg && <div className="msg err">{regMsg}</div>}
+
+        <div className="swap-row" style={{ marginBottom: 16 }}>
+          <div className="mode-toggle" style={{ marginBottom: 0 }}>
+            {["all", "pending", "confirmed", "rejected"].map((f) => (
+              <button key={f} className={regFilter === f ? "active" : ""} onClick={() => setRegFilter(f)}>
+                {f[0].toUpperCase() + f.slice(1)}
+                {f !== "all" && ` (${registrations.filter((r) => r.status === f).length})`}
+              </button>
+            ))}
+          </div>
+          <a
+            className="btn small ghost"
+            href={`/api/registrations/export${weekId ? `?weekId=${weekId}` : ""}`}
+          >
+            ↓ Export CSV
+          </a>
+        </div>
+
+        {registrations.length === 0 ? (
+          <div className="empty">No registrations yet.</div>
+        ) : (
+          <div className="tracker-wrap">
+            <table className="lb reg-table">
+              <thead>
+                <tr>
+                  <th>Submitted</th>
+                  <th>Name</th>
+                  <th>Contact</th>
+                  <th>Paid via</th>
+                  <th>Reference</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {registrations
+                  .filter((r) => regFilter === "all" || r.status === regFilter)
+                  .map((r) => (
+                    <tr key={r.id}>
+                      <td style={{ whiteSpace: "nowrap", fontSize: 13 }}>
+                        {new Date(r.created_at).toLocaleDateString()}
+                      </td>
+                      <td>
+                        <button className="link-btn" onClick={() => setOpenReg(openReg === r.id ? null : r.id)}>
+                          {r.nickname}
+                        </button>
+                        <div style={{ fontSize: 12, color: "var(--bone-dim)" }}>{r.full_name}</div>
+                      </td>
+                      <td style={{ fontSize: 13 }}>{r.contact_number}</td>
+                      <td style={{ fontSize: 13, textTransform: "capitalize" }}>{r.payment_method}</td>
+                      <td style={{ fontSize: 13 }}>{r.reference_number}</td>
+                      <td>
+                        <span className={"reg-status " + r.status}>{r.status}</span>
+                      </td>
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        <button className="btn small ghost" onClick={() => viewProof(r.id)}>Proof</button>{" "}
+                        {r.status !== "confirmed" && (
+                          <button className="btn small gold" onClick={() => setRegStatus(r.id, "confirmed")}>
+                            Confirm
+                          </button>
+                        )}{" "}
+                        {r.status !== "rejected" && (
+                          <button className="btn small ghost" onClick={() => setRegStatus(r.id, "rejected")}>
+                            Reject
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {openReg && (
+          <div className="reg-detail">
+            {(() => {
+              const r = registrations.find((x) => x.id === openReg);
+              if (!r) return null;
+              const rows = [
+                ["Full name", r.full_name],
+                ["Nickname", r.nickname],
+                ["Age range", r.age_range],
+                ["Gender", r.gender],
+                ["Contact", r.contact_number],
+                ["Facebook", r.facebook],
+                ["Instagram", r.instagram],
+                ["Board game familiarity", r.familiarity ? `${r.familiarity} / 5` : null],
+                ["Joining as", r.joining_as],
+                ["Heard about us from", r.heard_from],
+                ["Paid via", r.payment_method],
+                ["Reference", r.reference_number],
+              ];
+              return (
+                <>
+                  <h3>{r.nickname}</h3>
+                  <dl>
+                    {rows
+                      .filter(([, v]) => v)
+                      .map(([k, v]) => (
+                        <div key={k}>
+                          <dt>{k}</dt>
+                          <dd>{v}</dd>
+                        </div>
+                      ))}
+                  </dl>
+                  <button className="btn small ghost" onClick={() => setOpenReg(null)}>Close</button>
+                </>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+
+      <div className="panel">
+        <SectionLabel>Roster</SectionLabel>
+        <h2>Combatants ({players.length})</h2>
         <p className="hint">
           Add each player's name and optional photo. Use Matchmaking below to place them into a
           game once they're actually here — there's no fixed schedule to generate anymore. Click{" "}
           <strong>Edit</strong> on any combatant to rename them or add/change their photo at any
-          time.
+          time. This roster is shared across every week.
         </p>
         <input type="text" placeholder="Player name" value={name} onChange={(e) => setName(e.target.value)} />
         <input type="file" accept="image/*" onChange={onFile} />
@@ -401,24 +760,75 @@ export default function AdminPage() {
       </div>
 
       <div className="panel">
+        <SectionLabel>Configuration</SectionLabel>
         <h2>The 9 Games</h2>
-        <p className="hint">Name each game/station. Each game master runs one of these.</p>
-        <div className="games-name-grid">
-          {games.map((g, i) => (
-            <div className="games-name-row" key={g.id}>
-              <span className="games-name-num">{i + 1}</span>
-              <input
-                type="text"
-                value={g.name}
-                onChange={(e) => renameGame(g.id, e.target.value)}
-                onBlur={(e) => saveGameName(g.id, e.target.value)}
-              />
-            </div>
-          ))}
+        <p className="hint">
+          Write each game's description — it saves when you click away, and shows on the public{" "}
+          <a href="/games">Games</a> page. Box art is matched automatically from the image files
+          in <code>/public</code>; if a thumbnail is missing below, the game's name no longer
+          matches its filename.
+        </p>
+        <div className="game-edit-grid">
+          {games.map((g, i) => {
+            const art = artFor(g.name);
+            return (
+              <div className="game-edit" key={g.id}>
+                <div className="game-edit-head">
+                  <span className="games-name-num">{i + 1}</span>
+                  <input
+                    type="text"
+                    value={g.name || ""}
+                    onChange={(e) => editGameField(g.id, "name", e.target.value)}
+                    onBlur={(e) => saveGame(g.id, { name: e.target.value })}
+                  />
+                </div>
+
+                {art ? (
+                  <div className="game-edit-thumb">
+                    <img src={art} alt={g.name} />
+                  </div>
+                ) : (
+                  <div className="game-edit-thumb empty-thumb">No art matched</div>
+                )}
+
+                <textarea
+                  rows={4}
+                  placeholder="What is this game, and how do you win it?"
+                  value={g.description || ""}
+                  onChange={(e) => editGameField(g.id, "description", e.target.value)}
+                  onBlur={(e) => saveGame(g.id, { description: e.target.value })}
+                />
+
+                <label className={"fav-toggle" + (g.is_favorite ? " on" : "")}>
+                  <input
+                    type="checkbox"
+                    checked={!!g.is_favorite}
+                    onChange={(e) => {
+                      editGameField(g.id, "is_favorite", e.target.checked);
+                      saveGame(g.id, { isFavorite: e.target.checked });
+                    }}
+                  />
+                  ★ Crowd Favourite
+                </label>
+              </div>
+            );
+          })}
         </div>
       </div>
 
+      {!weekId ? (
+        <div className="panel">
+          <SectionLabel>Matchmaking</SectionLabel>
+          <h2>No active week</h2>
+          <p className="hint">
+            Matchmaking, the tracker and result recording all belong to a week. Open one in the
+            Weeks panel above to start placing players into games.
+          </p>
+        </div>
+      ) : (
+      <>
       <div className="panel">
+        <SectionLabel>{scopeLabel}</SectionLabel>
         <h2>Matchmaking — Round {round + 1}</h2>
         <p className="hint">
           Place whoever's actually present into a game for this round. A player can't be placed
@@ -505,11 +915,12 @@ export default function AdminPage() {
       </div>
 
       <div className="panel">
+        <SectionLabel>{scopeLabel}</SectionLabel>
         <h2>Tracker</h2>
         <p className="hint">
-          Games each combatant has already played (any round). Columns are ordered by scarcity —
-          whichever game has been played the least sits right next to the names, flagged in{" "}
-          <span style={{ color: "var(--warn)" }}>magenta</span>.
+          Games each combatant has already played this scope (any round). Columns are ordered by
+          scarcity — whichever game has been played the least sits right next to the names, flagged
+          in <span style={{ color: "var(--warn)" }}>magenta</span>.
         </p>
         {players.length === 0 ? (
           <div className="empty">No combatants yet.</div>
@@ -557,6 +968,7 @@ export default function AdminPage() {
       </div>
 
       <div className="panel">
+        <SectionLabel>{scopeLabel}</SectionLabel>
         <h2>Record Match Results</h2>
         <p className="hint">
           Each game master records their own game's results, per round. Selecting a placement for
@@ -574,18 +986,21 @@ export default function AdminPage() {
             const existing = resultLookup[g.id] || {};
             return (
               <MatchCard
-                key={g.id + "-" + round + "-" + Object.keys(existing).length}
+                key={g.id + "-" + round + "-" + weekId + "-" + Object.keys(existing).length}
                 game={g}
                 round={round}
+                weekId={weekId}
                 group={byGame[g.id] || []}
                 existing={existing}
-                onSaved={() => { loadAdminData(round); loadTracker(); }}
+                onSaved={() => { loadAdminData(round, weekId); loadTracker(weekId); }}
                 onUnassign={(playerId) => unassignPlayer(g.id, playerId)}
               />
             );
           })}
         </div>
       </div>
+      </>
+      )}
 
       <button className="btn ghost" onClick={loadSession}>↻ Refresh Data</button>{" "}
       <button className="btn ghost" onClick={logout}>Log Out</button>
@@ -593,7 +1008,7 @@ export default function AdminPage() {
   );
 }
 
-function MatchCard({ game, round, group, existing, onSaved, onUnassign }) {
+function MatchCard({ game, round, weekId, group, existing, onSaved, onUnassign }) {
   const [sel, setSel] = useState(() => ({ ...existing }));
   const done = group.length > 0 && Object.keys(existing).length === group.length;
 
@@ -615,7 +1030,7 @@ function MatchCard({ game, round, group, existing, onSaved, onUnassign }) {
     const r = await fetch("/api/results", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ round, gameId: game.id, placements }),
+      body: JSON.stringify({ round, gameId: game.id, placements, weekId }),
     }).then((r) => r.json());
     if (r.error) alert(r.error);
     else onSaved();
@@ -623,7 +1038,8 @@ function MatchCard({ game, round, group, existing, onSaved, onUnassign }) {
 
   async function unsave() {
     if (!confirm("Clear the recorded result for this match? You'll be able to unassign players and re-enter placements afterward.")) return;
-    const r = await fetch(`/api/results?round=${round}&gameId=${game.id}`, { method: "DELETE" }).then((r) => r.json());
+    const q = `round=${round}&gameId=${game.id}${weekId ? `&weekId=${weekId}` : ""}`;
+    const r = await fetch(`/api/results?${q}`, { method: "DELETE" }).then((r) => r.json());
     if (r.error) alert(r.error);
     else onSaved();
   }
