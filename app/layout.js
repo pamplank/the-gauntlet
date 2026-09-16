@@ -26,9 +26,27 @@ const inter = Inter({
   variable: "--font-body",
 });
 
+const DESCRIPTION =
+  "Nine board games, four players to a table, and a room full of strangers who won't be " +
+  "strangers by the end of it. A weekly all-day gauntlet at @ RUMBLE, Quezon City.";
+
 export const metadata = {
   title: "The Gauntlet",
-  description: "9 games, 9 rounds, 36 combatants. Fewer wounds, higher glory.",
+  description: DESCRIPTION,
+  // Shares on Messenger, Discord and Facebook read these rather than the
+  // bare description tag.
+  openGraph: {
+    title: "The Gauntlet — bored to death?",
+    description: DESCRIPTION,
+    siteName: "The Gauntlet",
+    locale: "en_PH",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Gauntlet — bored to death?",
+    description: DESCRIPTION,
+  },
 };
 
 export const viewport = {
