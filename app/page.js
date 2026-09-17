@@ -63,6 +63,34 @@ export default async function HomePage() {
         </div>
       )}
 
+      <section className="poster-block" aria-label="The Gauntlet poster">
+        <a
+          className="poster-shot"
+          href="/poster.webp"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open the full poster"
+        >
+          <img
+            src="/poster.webp"
+            width="1200"
+            height="1200"
+            alt="Bored to Death? Enter The Gauntlet, Saturdays and Sundays — a whole-day social board game marathon at @ RUMBLE."
+          />
+        </a>
+        <div className="poster-copy">
+          <p className="section-label">Saturdays &amp; Sundays</p>
+          <h2>A whole-day social board game marathon</h2>
+          <p>
+            Turn up on your own or drag everyone you know. Nine games, four to a table, new people
+            every round, and a room that doesn&apos;t empty out when the last game finishes.
+          </p>
+          <a className="btn gold pill big" href="/book">
+            Book a Spot <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </section>
+
       <PhotoRibbon photos={ribbonPhotos} />
 
       <Reveal as="section" className="panel" id="about">
