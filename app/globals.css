@@ -505,11 +505,8 @@ textarea:focus{outline:none;border-color:var(--cyan-dim);box-shadow:0 0 0 3px va
 }
 .venue-facts li::before{content:"⚔";position:absolute;left:0;top:9px;color:var(--gold);font-size:12px;}
 .venue-shots{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-.venue-shots.n1{grid-template-columns:1fr;}
 .venue-shots figure{margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--line);}
-.venue-shots img{display:block;width:100%;aspect-ratio:4 / 3;object-fit:cover;}
-/* With three shots the first spans the row so the grid doesn't leave a hole. */
-.venue-shots.n3 figure:first-child{grid-column:1 / -1;}
+.venue-shots img{display:block;width:100%;height:auto;aspect-ratio:3 / 2;object-fit:cover;}
 @media (max-width:900px){
   .venue{grid-template-columns:1fr;gap:30px;}
 }

@@ -124,7 +124,7 @@ export default async function HomePage() {
         <p className="hint">
           Nine stations, one room, and somewhere you can stay long after the last game finishes.
         </p>
-        <VenueSection photos={ribbonPhotos} />
+        <VenueSection />
       </Reveal>
     </div>
   );
