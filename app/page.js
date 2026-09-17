@@ -5,7 +5,7 @@ import AboutSection from "./AboutSection";
 import SectionLabel from "./SectionLabel";
 import Reveal from "./Reveal";
 import GamesBrowser from "./games/GamesBrowser";
-import WeeksList from "./weeks/WeeksList";
+import VenueSection from "./VenueSection";
 import PhotoRibbon from "./PhotoRibbon";
 import { photoUrl, RIBBON_LIMIT } from "../lib/photos";
 
@@ -19,12 +19,6 @@ export default async function HomePage() {
   const activeWeek = (weeks || []).find((w) => w.status === "booking") || null;
 
   const { data: games } = await supabaseAdmin.from("games").select("*").order("sort_order");
-
-  const { data: bookings } = await supabaseAdmin.from("bookings").select("week_id");
-  const counts = {};
-  (bookings || []).forEach((b) => {
-    counts[b.week_id] = (counts[b.week_id] || 0) + 1;
-  });
 
   // Same source as /book: anything not rejected is holding a seat, verified or
   // not. Counting the `bookings` table instead would show more seats free in
@@ -95,14 +89,13 @@ export default async function HomePage() {
         )}
       </Reveal>
 
-      <Reveal as="section" className="panel" id="weeks">
-        <SectionLabel>Weekly Gauntlet</SectionLabel>
-        <h2>Weeks</h2>
+      <Reveal as="section" className="panel" id="venue">
+        <SectionLabel>The venue</SectionLabel>
+        <h2>Where it happens</h2>
         <p className="hint">
-          Every Gauntlet event, one week at a time. Each has its own leaderboard and schedule;
-          running totals live on the <a href="/players">Leaderboard</a>.
+          Nine stations, one room, and somewhere you can stay long after the last game finishes.
         </p>
-        <WeeksList weeks={weeks || []} counts={counts} />
+        <VenueSection photos={ribbonPhotos} />
       </Reveal>
     </div>
   );

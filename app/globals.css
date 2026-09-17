@@ -344,6 +344,8 @@ button.btn.big, a.btn.big{padding:17px 34px;font-size:17px;}
 .hero-bar span{display:block;height:100%;background:var(--gold);border-radius:999px;}
 .hero-panel-meta{margin:0 0 22px;font-size:13px;color:var(--bone-dim);}
 .hero-cta{display:block;width:100%;text-align:center;}
+.hero-soldout{text-align:center;}
+.hero-soldout p{margin:14px 0 0;font-size:13.5px;color:var(--bone-dim);}
 .hero-panel-fine{margin:14px 0 0;font-size:11.5px;color:var(--bone-dim);text-align:center;line-height:1.5;}
 
 /* Lift real content above the decorative grid — but never restack the grid
@@ -379,6 +381,24 @@ button.btn.big, a.btn.big{padding:17px 34px;font-size:17px;}
   .ribbon{overflow-x:auto;}
   .ribbon-track{animation:none;}
 }
+
+/* Admin recap cover picker */
+.cover-picker{display:flex;flex-wrap:wrap;gap:8px;}
+.cover-cell,.cover-none{
+  padding:0;border:2px solid transparent;background:none;cursor:pointer;
+  border-radius:10px;overflow:hidden;transition:border-color .15s ease;
+}
+.cover-cell img{display:block;width:92px;height:62px;object-fit:cover;}
+.cover-cell.on,.cover-none.on{border-color:var(--gold);}
+.cover-none{
+  width:92px;height:62px;border:2px dashed var(--line);color:var(--bone-dim);
+  font-size:12px;display:flex;align-items:center;justify-content:center;
+}
+textarea{
+  width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--bone);
+  padding:10px;font-family:inherit;font-size:14px;border-radius:8px;resize:vertical;
+}
+textarea:focus{outline:none;border-color:var(--cyan-dim);box-shadow:0 0 0 3px var(--cyan-glow);}
 
 /* Admin photo manager */
 .photo-admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
@@ -450,7 +470,69 @@ button.btn.big, a.btn.big{padding:17px 34px;font-size:17px;}
 .reg-detail dd{margin:0;font-size:14px;color:var(--bone);word-break:break-word;}
 
 /* Anchored sections must clear the sticky nav when scrolled to. */
-#about, #games, #weeks{scroll-margin-top:96px;}
+#about, #games, #venue{scroll-margin-top:96px;}
+
+/* ── Venue ── */
+.venue{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:48px;align-items:center;}
+.venue-copy h3{font-size:clamp(24px,3.2vw,36px);color:var(--bone);margin:0 0 6px;}
+.venue-addr{margin:0 0 18px;color:var(--gold);font-size:14.5px;}
+.venue-blurb{color:var(--bone-dim);font-size:15.5px;line-height:1.75;margin:0 0 20px;max-width:52ch;}
+.venue-facts{list-style:none;margin:0 0 26px;padding:0;}
+.venue-facts li{
+  color:var(--bone-dim);font-size:14.5px;line-height:1.6;
+  padding:9px 0 9px 24px;border-bottom:1px solid var(--line);position:relative;
+}
+.venue-facts li::before{content:"⚔";position:absolute;left:0;top:9px;color:var(--gold);font-size:12px;}
+.venue-shots{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.venue-shots.n1{grid-template-columns:1fr;}
+.venue-shots figure{margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--line);}
+.venue-shots img{display:block;width:100%;aspect-ratio:4 / 3;object-fit:cover;}
+/* With three shots the first spans the row so the grid doesn't leave a hole. */
+.venue-shots.n3 figure:first-child{grid-column:1 / -1;}
+@media (max-width:900px){
+  .venue{grid-template-columns:1fr;gap:30px;}
+}
+
+/* ── Weeks page ── */
+.week-now{
+  display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;
+  background:var(--panel);border:1px solid var(--gold-dim);border-radius:20px;
+  padding:28px 30px;margin-bottom:46px;
+}
+.week-now.full{border-color:var(--blood-bright);}
+.week-now h3{font-size:clamp(24px,3.4vw,34px);color:var(--bone);margin:0 0 4px;}
+.week-now-date{margin:0 0 10px;color:var(--bone-dim);font-size:14px;}
+.week-now-seats{margin:0;color:var(--bone-dim);font-size:14.5px;}
+.week-now-next{margin:8px 0 0;color:var(--bone-dim);font-size:13px;opacity:.8;}
+.soldout-stamp{
+  display:inline-block;font-family:var(--font-display),system-ui,sans-serif;font-weight:800;
+  font-size:clamp(22px,3vw,30px);letter-spacing:.04em;text-transform:uppercase;
+  color:var(--blood-bright);border:2px solid var(--blood-bright);border-radius:10px;
+  padding:8px 20px;transform:rotate(-4deg);
+}
+.weeks-past-title{
+  font-size:clamp(20px,2.4vw,26px);color:var(--bone);margin:0 0 20px;
+  padding-top:34px;border-top:1px solid var(--line);
+}
+.weeks-past{display:flex;flex-direction:column;gap:20px;}
+.week-recap{
+  display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:24px;
+  align-items:center;padding-bottom:20px;border-bottom:1px solid var(--line);
+}
+.week-recap-shot{border-radius:14px;overflow:hidden;border:1px solid var(--line);}
+.week-recap-shot img{display:block;width:100%;aspect-ratio:16 / 10;object-fit:cover;}
+.week-recap-shot.empty{
+  aspect-ratio:16 / 10;display:flex;align-items:center;justify-content:center;
+  background:var(--panel);color:var(--gold-dim);font-size:26px;
+}
+.week-recap-body h3{font-size:22px;color:var(--bone);margin:0 0 6px;}
+.week-recap-meta{margin:0 0 12px;color:var(--bone-dim);font-size:13.5px;}
+.week-recap-text{color:var(--bone-dim);font-size:15px;line-height:1.75;margin:0 0 14px;max-width:62ch;}
+.week-recap-text.muted{opacity:.55;font-style:italic;}
+.week-recap-link{font-family:var(--font-display),system-ui,sans-serif;font-weight:600;font-size:14px;}
+@media (max-width:760px){
+  .week-recap{grid-template-columns:1fr;gap:16px;}
+}
 
 /* ── What to expect ── */
 /* A ruled grid, not cards — the cells share hairlines so the six points read
@@ -558,6 +640,8 @@ button.btn.big, a.btn.big{padding:17px 34px;font-size:17px;}
   font-variant-numeric:tabular-nums;
 }
 .book-of{font-size:12px;color:var(--bone-dim);}
+.book-soldout{text-align:center;padding:30px 0 10px;}
+.book-soldout p{margin:18px auto 0;max-width:48ch;color:var(--bone-dim);font-size:14.5px;line-height:1.7;}
 .book-price{display:flex;flex-direction:column;gap:6px;}
 .book-price-row{display:flex;align-items:baseline;gap:9px;}
 .book-price-row s{

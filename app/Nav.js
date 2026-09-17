@@ -10,9 +10,10 @@ const SECTIONS = [
   ["home", "Home"],
   ["about", "About"],
   ["games", "Games"],
-  ["weeks", "Weeks"],
+  ["venue", "Venue"],
 ];
 const PAGES = [
+  ["/weeks", "Weeks"],
   ["/players", "Leaderboard"],
   ["/admin", "Admin"],
 ];

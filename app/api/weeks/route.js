@@ -51,11 +51,31 @@ const TRANSITIONS = {
 
 export async function PATCH(req) {
   if (!isAuthed()) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
-  const { id, status } = await req.json();
-  if (!id || !status) return NextResponse.json({ error: "id and status required." }, { status: 400 });
+  const { id, status, highlight, coverPhotoId } = await req.json();
+  if (!id) return NextResponse.json({ error: "id required." }, { status: 400 });
 
   const { data: week } = await supabaseAdmin.from("weeks").select("status").eq("id", id).maybeSingle();
   if (!week) return NextResponse.json({ error: "Week not found." }, { status: 404 });
+
+  // The recap is editable at any point in a week's life and has nothing to do
+  // with the status machine, so it saves on its own.
+  if (status === undefined) {
+    const patch = {};
+    if (highlight !== undefined) patch.highlight = highlight?.trim() || null;
+    if (coverPhotoId !== undefined) patch.cover_photo_id = coverPhotoId || null;
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
+    }
+    const { data: saved, error } = await supabaseAdmin
+      .from("weeks")
+      .update(patch)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ week: saved });
+  }
+
   if (!TRANSITIONS[week.status]?.includes(status)) {
     return NextResponse.json({ error: `Can't move a week from "${week.status}" to "${status}".` }, { status: 400 });
   }

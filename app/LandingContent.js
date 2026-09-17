@@ -12,8 +12,12 @@ export default function LandingContent({ activeWeek, booked = 0 }) {
 
       <div className="hero-type">
         <span className="hero-badge">
-          <span className="badge-tag">{activeWeek ? "Open" : "Live"}</span>
-          {activeWeek ? "Booking Open" : "The Recurring Gauntlet"}
+          <span className="badge-tag">{!activeWeek ? "Live" : full ? "Full" : "Open"}</span>
+          {!activeWeek
+            ? "The Recurring Gauntlet"
+            : full
+              ? "Fully Booked"
+              : "Booking Open"}
         </span>
 
         <h2 className="hero-headline">
@@ -55,11 +59,13 @@ export default function LandingContent({ activeWeek, booked = 0 }) {
             <div className="hero-bar" aria-hidden="true">
               <span style={{ width: `${pct}%` }} />
             </div>
+            {/* Full is checked first — otherwise a zero-capacity week would
+                claim every seat is available while the panel says sold out. */}
             <p className="hero-panel-meta">
-              {booked === 0
-                ? `Just opened — all ${WEEK_CAPACITY} seats available`
-                : full
-                  ? `Fully booked — all ${WEEK_CAPACITY} seats taken`
+              {full
+                ? `Fully booked — all ${WEEK_CAPACITY} seats taken`
+                : booked === 0
+                  ? `Just opened — all ${WEEK_CAPACITY} seats available`
                   : `${booked} of ${WEEK_CAPACITY} seats taken — ${left} left`}
             </p>
           </>
@@ -69,9 +75,16 @@ export default function LandingContent({ activeWeek, booked = 0 }) {
           <a className="btn gold pill big hero-cta" href="/book">
             Book Now <span aria-hidden="true">→</span>
           </a>
+        ) : full ? (
+          <div className="hero-soldout">
+            <span className="soldout-stamp">Sold Out</span>
+            <p>
+              This one&apos;s gone. <a href="/weeks">See when the next week opens</a>.
+            </p>
+          </div>
         ) : (
           <button className="btn ghost pill big hero-cta" disabled>
-            {full ? "Fully Booked" : "No Week Open Right Now"}
+            No Week Open Right Now
           </button>
         )}
 

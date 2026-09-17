@@ -80,6 +80,10 @@ export default function AdminPage() {
   const [regMsg, setRegMsg] = useState("");
   const [openReg, setOpenReg] = useState(null);
   const [photos, setPhotos] = useState([]);
+  const [recapWeekId, setRecapWeekId] = useState("");
+  const [recapText, setRecapText] = useState("");
+  const [recapCover, setRecapCover] = useState("");
+  const [recapMsg, setRecapMsg] = useState("");
   const [photoMsg, setPhotoMsg] = useState("");
   const [uploading, setUploading] = useState(false);
 
@@ -225,6 +229,22 @@ export default function AdminPage() {
     loadPhotos();
   }
 
+  async function saveRecap() {
+    if (!recapWeekId) return;
+    setRecapMsg("");
+    const r = await fetch("/api/weeks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: recapWeekId, highlight: recapText, coverPhotoId: recapCover || null }),
+    }).then((res) => res.json());
+    if (r.error) {
+      setRecapMsg(r.error);
+      return;
+    }
+    setRecapMsg("Recap saved.");
+    loadWeeks();
+  }
+
   useEffect(() => {
     loadSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -254,6 +274,14 @@ export default function AdminPage() {
     if (session?.loggedIn) loadPhotos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.loggedIn]);
+  // Load whichever week's recap is selected into the editor, so switching
+  // weeks never shows another week's text in the box.
+  useEffect(() => {
+    const w = weeks.find((x) => x.id === recapWeekId);
+    setRecapText(w?.highlight || "");
+    setRecapCover(w?.cover_photo_id || "");
+    setRecapMsg("");
+  }, [recapWeekId, weeks]);
 
   async function submitSetup() {
     setErr("");
@@ -759,6 +787,74 @@ export default function AdminPage() {
               );
             })()}
           </div>
+        )}
+      </div>
+
+      <div className="panel">
+        <SectionLabel>Weeks</SectionLabel>
+        <h2>Week recaps</h2>
+        <p className="hint">
+          A couple of sentences about how a week actually went, plus a cover shot. These show on
+          the public <a href="/weeks">Weeks</a> page once a week is completed.
+        </p>
+
+        {recapMsg && (
+          <div className={"msg " + (recapMsg === "Recap saved." ? "ok" : "err")}>{recapMsg}</div>
+        )}
+
+        <div className="swap-row" style={{ marginBottom: 14 }}>
+          <select value={recapWeekId} onChange={(e) => setRecapWeekId(e.target.value)}>
+            <option value="">Choose a week…</option>
+            {weeks.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.label} ({w.status})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {recapWeekId && (
+          <>
+            <label className="reg-field" style={{ marginBottom: 14 }}>
+              <span>The vibe that week</span>
+              <textarea
+                rows={3}
+                value={recapText}
+                onChange={(e) => setRecapText(e.target.value)}
+                placeholder="e.g. Cash and Guns got loud enough that the neighbours checked in. Three people came solo and left in a group chat."
+              />
+            </label>
+
+            <div className="reg-field" style={{ marginBottom: 16 }}>
+              <span>Cover photo</span>
+              {photos.length === 0 ? (
+                <small>Upload photos below first — they become selectable here.</small>
+              ) : (
+                <div className="cover-picker">
+                  <button
+                    type="button"
+                    className={"cover-none" + (recapCover === "" ? " on" : "")}
+                    onClick={() => setRecapCover("")}
+                  >
+                    None
+                  </button>
+                  {photos.map((p) => (
+                    <button
+                      type="button"
+                      key={p.id}
+                      className={"cover-cell" + (recapCover === p.id ? " on" : "")}
+                      onClick={() => setRecapCover(p.id)}
+                      aria-pressed={recapCover === p.id}
+                    >
+                      <img src={p.url} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button className="btn gold" onClick={saveRecap}>Save Recap</button>
+          </>
         )}
       </div>
 

@@ -74,9 +74,12 @@ export default async function BookPage() {
             </div>
 
             {full ? (
-              <div className="msg err" style={{ marginTop: 4 }}>
-                This week is fully booked — all {WEEK_CAPACITY} spots are taken. Check{" "}
-                <a href="/weeks">Weeks</a> for the next one.
+              <div className="book-soldout">
+                <span className="soldout-stamp">Sold Out</span>
+                <p>
+                  All {WEEK_CAPACITY} spots for {week.label} are taken. Check{" "}
+                  <a href="/weeks">Weeks</a> for the next one — they open a few days ahead.
+                </p>
               </div>
             ) : (
               <RegistrationForm
