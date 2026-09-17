@@ -73,17 +73,18 @@ export default async function HomePage() {
         >
           <img
             src="/poster.webp"
-            width="1200"
-            height="1200"
-            alt="Bored to Death? Enter The Gauntlet, Saturdays and Sundays — a whole-day social board game marathon at @ RUMBLE."
+            width="1080"
+            height="1350"
+            alt="Bored to Death? Enter The Gauntlet — all-day board game socials at @ RUMBLE."
           />
         </a>
         <div className="poster-copy">
-          <p className="section-label">Saturdays &amp; Sundays</p>
+          <p className="section-label">Every weekend</p>
           <h2>A whole-day social board game marathon</h2>
           <p>
-            Turn up on your own or drag everyone you know. Nine games, four to a table, new people
-            every round, and a room that doesn&apos;t empty out when the last game finishes.
+            One full day, every weekend — a Saturday or a Sunday, depending on the week. Turn up on
+            your own or drag everyone you know. Nine games, four to a table, new people every
+            round, and a room that doesn&apos;t empty out when the last game finishes.
           </p>
           <a className="btn gold pill big" href="/book">
             Book a Spot <span aria-hidden="true">→</span>
