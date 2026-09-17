@@ -1,7 +1,10 @@
 "use client";
 import { BOOKING_PRICE, BOOKING_PRICE_ORIGINAL, WEEK_CAPACITY } from "../lib/booking";
 
-export default function LandingContent({ activeWeek, booked = 0 }) {
+export default function LandingContent({ activeWeek, booked = 0, soldOutWeeks = [] }) {
+  // Weeks that sold out before the one we're leading with. Naming them is
+  // real scarcity — it's the week people just missed, not a padded number.
+  const missed = soldOutWeeks.filter((w) => w.id !== activeWeek?.id);
   const left = Math.max(0, WEEK_CAPACITY - booked);
   const full = activeWeek && left === 0;
   const pct = activeWeek ? Math.round((booked / WEEK_CAPACITY) * 100) : 0;
@@ -37,6 +40,12 @@ export default function LandingContent({ activeWeek, booked = 0 }) {
       </div>
 
       <aside className="hero-panel">
+        {missed.length > 0 && (
+          <p className="hero-missed">
+            {missed.map((w) => w.label).join(" and ")}{" "}
+            {missed.length === 1 ? "is" : "are"} sold out — next available:
+          </p>
+        )}
         <p className="hero-panel-label">{activeWeek ? activeWeek.label : "No week open"}</p>
         <p className="hero-panel-date">
           {activeWeek?.event_date || (activeWeek ? "Date to be announced" : "Check back soon")}

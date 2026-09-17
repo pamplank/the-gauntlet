@@ -20,7 +20,11 @@ export default async function WeeksPage() {
     .order("event_date", { ascending: false, nullsFirst: false })
     .order("opened_at", { ascending: false });
 
-  const active = (weeks || []).find((w) => w.status === "booking" || w.status === "in_progress") || null;
+  // Every week still taking bookings, soonest first — plus whatever is
+  // currently being played.
+  const open = (weeks || [])
+    .filter((w) => w.status === "booking" || w.status === "in_progress")
+    .sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
   const past = (weeks || []).filter((w) => w.status === "completed");
 
   // Seats sold comes from registrations, matching /book and the hero — the
@@ -62,8 +66,10 @@ export default async function WeeksPage() {
           champion. Running totals live on the <a href="/players">Leaderboard</a>.
         </p>
 
-        {active ? (
-          <ActiveWeekCard week={active} booked={counts[active.id] || 0} />
+        {open.length > 0 ? (
+          open.map((w) => (
+            <ActiveWeekCard key={w.id} week={w} booked={counts[w.id] || 0} />
+          ))
         ) : (
           <div className="empty">
             No week is open for booking right now — the next one goes up as soon as it&apos;s

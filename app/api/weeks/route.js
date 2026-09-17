@@ -26,15 +26,9 @@ export async function POST(req) {
   const { label, eventDate } = await req.json();
   if (!label || !label.trim()) return NextResponse.json({ error: "Label is required." }, { status: 400 });
 
-  const { data: active } = await supabaseAdmin
-    .from("weeks")
-    .select("id")
-    .in("status", ["booking", "in_progress"])
-    .maybeSingle();
-  if (active) {
-    return NextResponse.json({ error: "A week is already open or in progress. Complete or cancel it first." }, { status: 400 });
-  }
-
+  // Several weeks may take bookings at once — when the nearest sells out,
+  // people book the one after it. Only one week may be *in progress*, which
+  // the DB enforces and PATCH checks below.
   const { data: week, error } = await supabaseAdmin
     .from("weeks")
     .insert({ label: label.trim(), event_date: eventDate || null })
@@ -78,6 +72,23 @@ export async function PATCH(req) {
 
   if (!TRANSITIONS[week.status]?.includes(status)) {
     return NextResponse.json({ error: `Can't move a week from "${week.status}" to "${status}".` }, { status: 400 });
+  }
+
+  // Many weeks can be booking, but only one can be running — otherwise
+  // matchmaking, the tracker and results have no unambiguous "current week".
+  if (status === "in_progress") {
+    const { data: running } = await supabaseAdmin
+      .from("weeks")
+      .select("id,label")
+      .eq("status", "in_progress")
+      .neq("id", id)
+      .maybeSingle();
+    if (running) {
+      return NextResponse.json(
+        { error: `${running.label} is still in progress. Complete or cancel it before starting another.` },
+        { status: 400 }
+      );
+    }
   }
 
   const update = { status };

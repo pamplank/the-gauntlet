@@ -84,10 +84,19 @@ export default function AdminPage() {
   const [recapText, setRecapText] = useState("");
   const [recapCover, setRecapCover] = useState("");
   const [recapMsg, setRecapMsg] = useState("");
+  const [runWeekId, setRunWeekId] = useState("");
   const [photoMsg, setPhotoMsg] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  const activeWeek = weeks.find((w) => w.status === "booking" || w.status === "in_progress") || null;
+  // Several weeks can be open for booking at once. Only one is ever being
+  // played, though, so the game panels below need one unambiguous target:
+  // whatever is in progress, else the soonest open week, else an explicit pick.
+  const openWeeks = weeks
+    .filter((w) => w.status === "booking" || w.status === "in_progress")
+    .sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
+  const runningWeek = weeks.find((w) => w.status === "in_progress") || null;
+  const activeWeek =
+    weeks.find((w) => w.id === runWeekId) || runningWeek || openWeeks[0] || null;
   const weekId = activeWeek?.id || null;
 
   // A single flaky fetch (cold serverless function, a dropped connection)
@@ -565,21 +574,57 @@ export default function AdminPage() {
         <SectionLabel>Admin</SectionLabel>
         <h2>Weeks</h2>
         <p className="hint">
-          Open a week to let people book a spot on the public site. Matchmaking, the tracker and
-          results below all operate on whichever week is currently open or in progress.
+          Open as many weeks for booking as you like — when the nearest sells out, people book the
+          one after it. Only one week can be <em>in progress</em> at a time, and that&apos;s the
+          one Matchmaking, the Tracker and Results operate on.
         </p>
 
         {weekMsg && <div className="msg err">{weekMsg}</div>}
 
-        {activeWeek ? (
-          <div className="week-banner">
+        <div className="swap-row" style={{ marginBottom: 18 }}>
+          <input
+            type="text"
+            placeholder="Week label (e.g. Week 20 — Sept 26)"
+            value={weekLabel}
+            onChange={(e) => setWeekLabel(e.target.value)}
+          />
+          <input type="date" value={weekDate} onChange={(e) => setWeekDate(e.target.value)} />
+          <button className="btn gold" onClick={openWeek}>Open Week for Booking</button>
+        </div>
+
+        {openWeeks.length > 1 && (
+          <div className="swap-row" style={{ marginBottom: 14 }}>
+            <span className="book-label" style={{ alignSelf: "center" }}>Panels below act on</span>
+            <select value={weekId || ""} onChange={(e) => setRunWeekId(e.target.value)}>
+              {openWeeks.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.label} ({w.status})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {openWeeks.length === 0 && (
+          <div className="empty">No weeks open. Create one above to start taking bookings.</div>
+        )}
+
+        {openWeeks.map((activeWeek) => (
+          <div
+            className={"week-banner" + (activeWeek.id === weekId ? " selected" : "")}
+            key={activeWeek.id}
+          >
             <div>
               <strong>{activeWeek.label}</strong>{" "}
               <span className="status-pill">
                 {activeWeek.status === "booking" ? "Booking Open" : "In Progress"}
               </span>
               <div className="hint" style={{ marginTop: 4 }}>
-                {weekBookings.length} / 36 booked
+                {/* Per-week count from the API — weekBookings only holds the
+                    selected week, so using it here would repeat one number
+                    across every banner. */}
+                {activeWeek.bookingCount ?? 0} / 36 booked
+                {activeWeek.event_date ? ` · ${activeWeek.event_date}` : ""}
               </div>
             </div>
             <div className="swap-row" style={{ marginTop: 8 }}>
@@ -598,7 +643,9 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {activeWeek.status === "booking" && (
+            {/* Roster editing only on the selected week — the name field and
+                the bookings list are single-week state. */}
+            {activeWeek.id === weekId && activeWeek.status === "booking" && (
               <div className="swap-row" style={{ marginTop: 12 }}>
                 <input
                   type="text"
@@ -617,9 +664,11 @@ export default function AdminPage() {
                 </button>
               </div>
             )}
-            {addBookingMsg && <div className="msg err" style={{ marginTop: 8 }}>{addBookingMsg}</div>}
+            {activeWeek.id === weekId && addBookingMsg && (
+              <div className="msg err" style={{ marginTop: 8 }}>{addBookingMsg}</div>
+            )}
 
-            {weekBookings.length > 0 && (
+            {activeWeek.id === weekId && weekBookings.length > 0 && (
               <div style={{ marginTop: 12 }}>
                 {weekBookings.map((b) => (
                   <div className="player-row" key={b.id}>
@@ -635,18 +684,7 @@ export default function AdminPage() {
               </div>
             )}
           </div>
-        ) : (
-          <div className="swap-row">
-            <input
-              type="text"
-              placeholder="Week label (e.g. Week 12 — Sept 21)"
-              value={weekLabel}
-              onChange={(e) => setWeekLabel(e.target.value)}
-            />
-            <input type="date" value={weekDate} onChange={(e) => setWeekDate(e.target.value)} />
-            <button className="btn gold" onClick={openWeek}>Open New Week for Booking</button>
-          </div>
-        )}
+        ))}
 
         {pastWeeks.length > 0 && (
           <div className="hint" style={{ marginTop: 12 }}>

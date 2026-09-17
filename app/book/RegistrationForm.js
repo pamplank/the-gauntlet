@@ -35,7 +35,11 @@ const EMPTY = {
   referenceNumber: "",
 };
 
-export default function RegistrationForm({ week, price, priceOriginal }) {
+export default function RegistrationForm({ weeks = [], price, priceOriginal }) {
+  // Defaults to the soonest week with room; the picker only appears when
+  // there's an actual choice to make.
+  const [weekId, setWeekId] = useState(weeks[0]?.id || "");
+  const week = weeks.find((w) => w.id === weekId) || weeks[0] || null;
   const [step, setStep] = useState(0);
   const [v, setV] = useState(EMPTY);
   const [privacy, setPrivacy] = useState(false);
@@ -168,6 +172,32 @@ export default function RegistrationForm({ week, price, priceOriginal }) {
   return (
     <form className="reg-form" onSubmit={submit} noValidate>
       <div id="reg-top" />
+
+      {weeks.length > 1 && (
+        <fieldset className="reg-block reg-weekpick">
+          <legend>Which day are you coming? <b>*</b></legend>
+          <div className="reg-choices">
+            {weeks.map((w) => (
+              <label key={w.id} className={"reg-chip wide" + (weekId === w.id ? " on" : "")}>
+                <input
+                  type="radio"
+                  name="weekPick"
+                  value={w.id}
+                  checked={weekId === w.id}
+                  onChange={() => setWeekId(w.id)}
+                />
+                <span>
+                  <strong>{w.label}</strong>
+                  <small>
+                    {w.event_date ? `${w.event_date} · ` : ""}
+                    {w.seatsLeft} left
+                  </small>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <div className="reg-steps">
         {STEPS.map((name, i) => (

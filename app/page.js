@@ -8,30 +8,19 @@ import GamesBrowser from "./games/GamesBrowser";
 import VenueSection from "./VenueSection";
 import PhotoRibbon from "./PhotoRibbon";
 import { photoUrl, RIBBON_LIMIT } from "../lib/photos";
+import { getOpenWeeks, splitOpenWeeks } from "../lib/weeks";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const { data: weeks } = await supabaseAdmin
-    .from("weeks")
-    .select("*")
-    .order("opened_at", { ascending: false });
-  const activeWeek = (weeks || []).find((w) => w.status === "booking") || null;
+  const openWeeks = await getOpenWeeks(supabaseAdmin);
+  const { bookable, soldOut } = splitOpenWeeks(openWeeks);
+  // Lead with the soonest week you can actually book. If every open week is
+  // full, fall back to the last one so the hero can say so rather than
+  // pretending nothing is scheduled.
+  const activeWeek = bookable || openWeeks[openWeeks.length - 1] || null;
 
   const { data: games } = await supabaseAdmin.from("games").select("*").order("sort_order");
-
-  // Same source as /book: anything not rejected is holding a seat, verified or
-  // not. Counting the `bookings` table instead would show more seats free in
-  // the hero than the booking page offers.
-  let activeBooked = 0;
-  if (activeWeek) {
-    const { count } = await supabaseAdmin
-      .from("registrations")
-      .select("id", { count: "exact", head: true })
-      .eq("week_id", activeWeek.id)
-      .neq("status", "rejected");
-    activeBooked = count || 0;
-  }
 
   const { data: shots } = await supabaseAdmin
     .from("photos")
@@ -49,7 +38,11 @@ export default async function HomePage() {
     <div className="wrap">
       <Nav />
 
-      <LandingContent activeWeek={activeWeek} booked={activeBooked} />
+      <LandingContent
+        activeWeek={activeWeek}
+        booked={activeWeek?.booked ?? 0}
+        soldOutWeeks={soldOut}
+      />
 
       {gameNames.length > 0 && (
         <div className="marquee">

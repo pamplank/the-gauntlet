@@ -515,8 +515,9 @@ textarea:focus{outline:none;border-color:var(--cyan-dim);box-shadow:0 0 0 3px va
 .week-now{
   display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;
   background:var(--panel);border:1px solid var(--gold-dim);border-radius:20px;
-  padding:28px 30px;margin-bottom:46px;
+  padding:28px 30px;margin-bottom:16px;
 }
+.week-now:last-of-type{margin-bottom:46px;}
 .week-now.full{border-color:var(--blood-bright);}
 .week-now h3{font-size:clamp(24px,3.4vw,34px);color:var(--bone);margin:0 0 4px;}
 .week-now-date{margin:0 0 10px;color:var(--bone-dim);font-size:14px;}
@@ -660,6 +661,13 @@ textarea:focus{outline:none;border-color:var(--cyan-dim);box-shadow:0 0 0 3px va
 .book-of{font-size:12px;color:var(--bone-dim);}
 .book-soldout{text-align:center;padding:30px 0 10px;}
 .book-soldout p{margin:18px auto 0;max-width:48ch;color:var(--bone-dim);font-size:14.5px;line-height:1.7;}
+.book-soldnote{margin:-22px 0 26px;font-size:13.5px;color:var(--bone-dim);}
+.hero-missed{margin:0 0 10px;font-size:12.5px;color:var(--blood-bright);letter-spacing:.01em;}
+.reg-weekpick{margin-bottom:18px;}
+.reg-chip.wide{padding:12px 16px;text-align:left;}
+.reg-chip.wide span{display:flex;flex-direction:column;gap:2px;}
+.reg-chip.wide strong{font-family:var(--font-display),system-ui,sans-serif;font-weight:700;font-size:15px;}
+.reg-chip.wide small{font-size:11.5px;opacity:.75;}
 .book-price{display:flex;flex-direction:column;gap:6px;}
 .book-price-row{display:flex;align-items:baseline;gap:9px;}
 .book-price-row s{
@@ -885,6 +893,8 @@ textarea:focus{outline:none;border-color:var(--cyan-dim);box-shadow:0 0 0 3px va
 .status-pill{display:inline-block;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border:1px solid var(--cyan-dim);color:var(--cyan);border-radius:999px;margin-left:6px;}
 .week-card{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border:1px solid var(--line);padding:14px 16px;margin-bottom:10px;background:var(--bg2);}
 .week-card.active{border-color:var(--gold-dim);box-shadow:0 0 0 1px var(--gold-dim) inset;}
+.week-banner + .week-banner{margin-top:12px;}
+.week-banner.selected{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold-dim) inset;}
 .week-card h3{font-size:16px;color:var(--bone);}
 .week-card .hint{margin:4px 0 0;}
 .booked-count{font-size:12px;color:var(--bone-dim);}

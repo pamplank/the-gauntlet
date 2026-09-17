@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "../../lib/db";
 import { BOOKING_PRICE, BOOKING_PRICE_ORIGINAL, WEEK_CAPACITY } from "../../lib/booking";
+import { getOpenWeeks } from "../../lib/weeks";
 import Nav from "../Nav";
 import SectionLabel from "../SectionLabel";
 import Reveal from "../Reveal";
@@ -8,26 +9,9 @@ import RegistrationForm from "./RegistrationForm";
 export const dynamic = "force-dynamic";
 
 export default async function BookPage() {
-  const { data: weeks } = await supabaseAdmin
-    .from("weeks")
-    .select("*")
-    .eq("status", "booking")
-    .order("opened_at", { ascending: false })
-    .limit(1);
-  const week = (weeks || [])[0] || null;
-
-  // Anything not rejected is holding a slot, whether or not it's verified yet.
-  let booked = 0;
-  if (week) {
-    const { count } = await supabaseAdmin
-      .from("registrations")
-      .select("id", { count: "exact", head: true })
-      .eq("week_id", week.id)
-      .neq("status", "rejected");
-    booked = count || 0;
-  }
-  const left = Math.max(0, WEEK_CAPACITY - booked);
-  const full = week && left === 0;
+  const openWeeks = await getOpenWeeks(supabaseAdmin);
+  const bookable = openWeeks.filter((w) => !w.full);
+  const soldOut = openWeeks.filter((w) => w.full);
 
   return (
     <div className="wrap">
@@ -36,11 +20,11 @@ export default async function BookPage() {
         <SectionLabel>Weekly Gauntlet</SectionLabel>
         <h2>Book a Spot</h2>
 
-        {!week ? (
+        {openWeeks.length === 0 ? (
           <>
             <p className="hint">
               No week is open for booking at the moment. Keep an eye on{" "}
-              <a href="/weeks">Weeks</a> — the next one goes up as soon as it's scheduled.
+              <a href="/weeks">Weeks</a> — the next one goes up as soon as it&apos;s scheduled.
             </p>
             <div className="empty">Booking is currently closed.</div>
           </>
@@ -48,14 +32,19 @@ export default async function BookPage() {
           <>
             <p className="hint">
               Nine games, four combatants at a table, one winner per round. Take the fewest wounds
-              across the night and the leaderboard is yours.
+              across the day and the leaderboard is yours.
             </p>
 
             <div className="book-status">
               <div className="book-week">
-                <span className="book-label">Now booking</span>
-                <strong>{week.label}</strong>
-                {week.event_date && <span className="book-date">{week.event_date}</span>}
+                <span className="book-label">
+                  {bookable.length > 1 ? "Weeks open" : "Now booking"}
+                </span>
+                <strong>
+                  {bookable.length > 0
+                    ? bookable.map((w) => w.label).join(" · ")
+                    : "All weeks full"}
+                </strong>
               </div>
               <div className="book-price">
                 <span className="book-label">Entry</span>
@@ -67,23 +56,35 @@ export default async function BookPage() {
                 </span>
               </div>
               <div className="book-count">
-                <span className="book-number">{full ? "0" : left}</span>
-                <span className="book-label">{full ? "Spots left" : left === 1 ? "Spot left" : "Spots left"}</span>
-                <span className="book-of">of {WEEK_CAPACITY}</span>
+                <span className="book-number">
+                  {bookable.reduce((n, w) => n + w.seatsLeft, 0)}
+                </span>
+                <span className="book-label">Spots left</span>
+                <span className="book-of">
+                  across {bookable.length || openWeeks.length} week
+                  {(bookable.length || openWeeks.length) === 1 ? "" : "s"}
+                </span>
               </div>
             </div>
 
-            {full ? (
+            {soldOut.length > 0 && (
+              <p className="book-soldnote">
+                {soldOut.map((w) => w.label).join(" and ")}{" "}
+                {soldOut.length === 1 ? "is" : "are"} sold out.
+              </p>
+            )}
+
+            {bookable.length === 0 ? (
               <div className="book-soldout">
                 <span className="soldout-stamp">Sold Out</span>
                 <p>
-                  All {WEEK_CAPACITY} spots for {week.label} are taken. Check{" "}
-                  <a href="/weeks">Weeks</a> for the next one — they open a few days ahead.
+                  Every open week is full — all {WEEK_CAPACITY} spots each. Check{" "}
+                  <a href="/weeks">Weeks</a> for the next one; they open a few days ahead.
                 </p>
               </div>
             ) : (
               <RegistrationForm
-                week={week}
+                weeks={bookable}
                 price={BOOKING_PRICE}
                 priceOriginal={BOOKING_PRICE_ORIGINAL}
               />
