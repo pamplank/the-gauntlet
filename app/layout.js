@@ -30,15 +30,18 @@ const DESCRIPTION =
   "Nine board games, four players to a table, and a room full of strangers who won't be " +
   "strangers by the end of it. A weekly all-day gauntlet at @ RUMBLE, Quezon City.";
 
-// Share cards need absolute URLs. Set NEXT_PUBLIC_SITE_URL to the real domain
-// in Vercel — VERCEL_URL is per-deployment, so previews still work but the
-// canonical share image should point at the custom domain.
+// Share cards need absolute URLs, and they have to stay valid long after the
+// deploy that produced them — VERCEL_URL is per-deployment, so a link shared
+// today would eventually point at a dead hostname. The production domain is
+// the default; NEXT_PUBLIC_SITE_URL overrides it if the domain ever changes.
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  process.env.NEXT_PUBLIC_SITE_URL || "https://the-gauntlet-arena.vercel.app";
 
+// Absolute, not "/og.jpg": Next resolves og:url against metadataBase but
+// rewrites relative image paths to the dev origin, so a relative path here
+// shipped "http://localhost:3000/og.jpg" into the markup.
 const OG_IMAGE = {
-  url: "/og.jpg",
+  url: `${SITE_URL}/og.jpg`,
   width: 1200,
   height: 630,
   alt: "Five players reaching into the middle of a board game at The Gauntlet",
