@@ -30,7 +30,22 @@ const DESCRIPTION =
   "Nine board games, four players to a table, and a room full of strangers who won't be " +
   "strangers by the end of it. A weekly all-day gauntlet at @ RUMBLE, Quezon City.";
 
+// Share cards need absolute URLs. Set NEXT_PUBLIC_SITE_URL to the real domain
+// in Vercel — VERCEL_URL is per-deployment, so previews still work but the
+// canonical share image should point at the custom domain.
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+const OG_IMAGE = {
+  url: "/og.jpg",
+  width: 1200,
+  height: 630,
+  alt: "Five players reaching into the middle of a board game at The Gauntlet",
+};
+
 export const metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "The Gauntlet",
   description: DESCRIPTION,
   // Shares on Messenger, Discord and Facebook read these rather than the
@@ -41,11 +56,14 @@ export const metadata = {
     siteName: "The Gauntlet",
     locale: "en_PH",
     type: "website",
+    url: "/",
+    images: [OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: "The Gauntlet — bored to death?",
     description: DESCRIPTION,
+    images: [OG_IMAGE],
   },
 };
 
