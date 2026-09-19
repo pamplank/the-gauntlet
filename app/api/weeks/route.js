@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, isAuthed } from "../../../lib/db";
+import { announceWeekOpen, announceWeekResults } from "../../../lib/discord";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,12 @@ export async function POST(req) {
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // A week is created straight into `booking`, so this is the moment seats
+  // open. Awaited rather than fired-and-forgotten because serverless kills
+  // the function once the response is returned.
+  await announceWeekOpen(week);
+
   return NextResponse.json({ week });
 }
 
@@ -97,5 +104,10 @@ export async function PATCH(req) {
 
   const { data: updated, error } = await supabaseAdmin.from("weeks").update(update).eq("id", id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Completing a week is the only status change worth announcing — nobody
+  // needs a post saying the night has started, they're already in the room.
+  if (status === "completed") await announceWeekResults(id);
+
   return NextResponse.json({ week: updated });
 }

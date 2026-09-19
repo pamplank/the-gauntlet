@@ -23,6 +23,21 @@ Set these in Vercel (Project Settings -> Environment Variables) AND in a local
   Settings -> API. Server-only, never sent to the browser. `lib/db.js` throws
   at startup if either var is missing — there is no fallback baked in.
 
+Optional, for the Discord posts (`lib/discord.js`). Any of these left unset
+just skips that notification; nothing else changes:
+
+- `DISCORD_ANNOUNCE_WEBHOOK_URL` — webhook for the announcements channel.
+  Fires when a week is created (seats open) and when one sells out.
+- `DISCORD_GLORY_WEBHOOK_URL` — webhook for the leaderboards channel. Fires
+  when a week is marked `completed`, posting the podium.
+- `DISCORD_SEAT_ALERTS_ROLE_ID` — the `@Seat Alerts` role. Only the
+  booking-open post pings it; ping anything else and people mute the server.
+- `SITE_URL` — used to build links in those posts.
+
+A webhook URL is bound to one channel and **dies with it** — if a channel is
+deleted and recreated, the old URL returns 404 and posts vanish silently. Make
+each one under Edit Channel -> Integrations -> Webhooks.
+
 ## Structure
 
 - `app/page.js` / `app/schedule/page.js` — the **Legacy Event**: the original,

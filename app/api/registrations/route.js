@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, isAuthed } from "../../../lib/db";
 import { WEEK_CAPACITY } from "../../../lib/booking";
+import { announceSoldOut } from "../../../lib/discord";
 import {
   AGE_RANGES,
   GENDERS,
@@ -224,6 +225,22 @@ export async function PATCH(req) {
         { error: `Confirmed, but adding them to the week failed: ${bookErr.message}` },
         { status: 500 }
       );
+    }
+
+    // The roster is what actually sells out, not the pending pile — so this
+    // fires on confirmation. Only on the exact seat that fills the week, so
+    // later re-confirms of an already-full week stay quiet.
+    const { count: booked } = await supabaseAdmin
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("week_id", reg.week_id);
+    if (booked === WEEK_CAPACITY) {
+      const { data: week } = await supabaseAdmin
+        .from("weeks")
+        .select("label")
+        .eq("id", reg.week_id)
+        .maybeSingle();
+      await announceSoldOut(week);
     }
   }
 
