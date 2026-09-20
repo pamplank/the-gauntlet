@@ -968,3 +968,47 @@ td.wounds.dim{color:var(--bone-dim);font-weight:400;}
 
 /* Tracker: seated at a game but no result saved yet. */
 .mark-seated{color:var(--gold);opacity:.8;font-size:13px;}
+
+/* ── Now playing: the public "where do I sit" board ── */
+.now-head{padding:28px 0 20px;}
+.now-head h2{font-family:var(--font-display),system-ui,sans-serif;color:var(--bone);
+  font-size:clamp(34px,6vw,60px);line-height:1;margin:0 0 20px;}
+.now-find{
+  width:100%;max-width:440px;background:var(--bg2);border:1px solid var(--gold-dim);
+  color:var(--bone);border-radius:999px;padding:14px 20px;font-size:16px;font-family:inherit;
+}
+.now-find:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow);}
+.now-answer{
+  margin:16px 0 0;font-family:var(--font-display),system-ui,sans-serif;font-weight:700;
+  font-size:clamp(20px,3vw,28px);color:var(--gold);
+}
+.now-answer strong{color:var(--bone);}
+.now-answer.resting{color:var(--cyan);}
+.now-answer.none{color:var(--bone-dim);font-size:16px;font-weight:400;}
+.now-rounds{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 24px;}
+.now-rounds a{
+  min-width:40px;text-align:center;padding:8px 12px;border:1px solid var(--line);
+  border-radius:10px;color:var(--bone-dim);font-size:14px;
+}
+.now-rounds a:hover{border-color:var(--gold-dim);color:var(--bone);text-decoration:none;}
+.now-rounds a.on{background:var(--gold);border-color:var(--gold);color:#1a1120;font-weight:700;}
+.now-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
+.now-table{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 18px 14px;}
+.now-table.mine{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold-dim) inset;}
+.now-table header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.now-station{
+  flex:none;width:30px;height:30px;border-radius:9px;background:var(--gold);color:#1a1120;
+  font-family:var(--font-display),system-ui,sans-serif;font-weight:800;font-size:15px;
+  display:flex;align-items:center;justify-content:center;
+}
+.now-table h3{font-size:16px;color:var(--bone);margin:0;flex:1;line-height:1.2;}
+.now-state{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim);white-space:nowrap;}
+.now-state.done{color:var(--good);}
+.now-table ol{list-style:none;margin:0;padding:0;}
+.now-table li{color:var(--bone-dim);font-size:14.5px;padding:5px 0;border-top:1px solid var(--line);}
+.now-table li.me{color:var(--gold);font-weight:600;}
+.now-resting{margin-top:28px;padding-top:20px;border-top:1px solid var(--line);}
+.now-resting h3{font-size:15px;color:var(--bone);margin:0 0 10px;}
+.now-resting p{margin:0;display:flex;flex-wrap:wrap;gap:6px 14px;}
+.now-resting span{color:var(--bone-dim);font-size:14px;}
+.now-resting span.me{color:var(--cyan);font-weight:600;}

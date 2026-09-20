@@ -13,6 +13,7 @@ const SECTIONS = [
   ["venue", "Venue"],
 ];
 const PAGES = [
+  ["/now", "Now Playing"],
   ["/weeks", "Weeks"],
   ["/players", "Leaderboard"],
   ["/admin", "Admin"],
