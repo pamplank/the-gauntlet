@@ -1041,11 +1041,11 @@ export default function AdminPage() {
                   onBlur={(e) => saveGame(g.id, { description: e.target.value })}
                 />
 
-                <label className="seat-cap">
-                  <span>Seats at this table</span>
+                <label className={"seat-cap" + (Number(g.max_players) === 0 ? " benched" : "")}>
+                  <span>{Number(g.max_players) === 0 ? "Benched this week" : "Seats at this table"}</span>
                   <input
                     type="number"
-                    min="2"
+                    min="0"
                     max="12"
                     value={g.max_players ?? 4}
                     onChange={(e) => editGameField(g.id, "max_players", e.target.value)}

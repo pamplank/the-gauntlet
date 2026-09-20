@@ -16,7 +16,7 @@ export async function POST(req) {
     .select("id,max_players")
     .order("sort_order");
   const gameIds = (games || []).map((g) => g.id);
-  const capacities = Object.fromEntries((games || []).map((g) => [g.id, g.max_players || 4]));
+  const capacities = Object.fromEntries((games || []).map((g) => [g.id, g.max_players ?? 4]));
 
   const { data: allSched } = await supabaseAdmin
     .from("schedule")

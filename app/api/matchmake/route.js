@@ -44,7 +44,13 @@ export async function POST(req) {
     .select("name,max_players")
     .eq("id", gameId)
     .maybeSingle();
-  const cap = g?.max_players || 4;
+  const cap = g?.max_players ?? 4;
+  if (cap === 0) {
+    return NextResponse.json(
+      { error: `${g?.name || "That game"} is benched this week.` },
+      { status: 400 }
+    );
+  }
   if ((count || 0) >= cap) {
     return NextResponse.json(
       { error: `${g?.name || "That game"} already has its ${cap} players this round.` },

@@ -23,10 +23,14 @@ export async function PATCH(req) {
   if (isFavorite !== undefined) update.is_favorite = !!isFavorite;
   if (maxPlayers !== undefined) {
     const n = parseInt(maxPlayers, 10);
-    // Two is the smallest playable table; twelve is well past any of the nine
-    // and stops a typo silently seating a hundred people at one game.
-    if (!Number.isInteger(n) || n < 2 || n > 12) {
-      return NextResponse.json({ error: "Seats per game must be between 2 and 12." }, { status: 400 });
+    // 0 benches the game for this week — no copy on the floor, so the
+    // matchmaker skips it entirely. 1 is meaningless, so it's excluded.
+    // 12 is well past any of the nine and stops a typo seating a hundred.
+    if (!Number.isInteger(n) || n === 1 || n < 0 || n > 12) {
+      return NextResponse.json(
+        { error: "Seats must be 0 (benched) or between 2 and 12." },
+        { status: 400 }
+      );
     }
     update.max_players = n;
   }
