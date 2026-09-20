@@ -14,5 +14,13 @@ export async function GET(req) {
     .select("round,game_id,player_id")
     .eq("week_id", weekId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ schedule: data || [] });
+
+  // The tracker needs both: being assigned to a game is what blocks a repeat,
+  // but only a saved result means the game is actually done.
+  const { data: done } = await supabaseAdmin
+    .from("results")
+    .select("round,game_id,player_id")
+    .eq("week_id", weekId);
+
+  return NextResponse.json({ schedule: data || [], results: done || [] });
 }

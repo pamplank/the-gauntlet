@@ -65,6 +65,7 @@ export default function AdminPage() {
   const [scheduleRows, setScheduleRows] = useState([]);
   const [results, setResults] = useState([]);
   const [allSchedule, setAllSchedule] = useState([]);
+  const [allResults, setAllResults] = useState([]);
   const [name, setName] = useState("");
   const [image, setImage] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -160,10 +161,14 @@ export default function AdminPage() {
   async function loadTracker(wid) {
     if (!wid) {
       setAllSchedule([]);
+      setAllResults([]);
       return;
     }
     const r = await fetchJSON(`/api/tracker?weekId=${wid}`);
-    if (r) setAllSchedule(r.schedule || []);
+    if (r) {
+      setAllSchedule(r.schedule || []);
+      setAllResults(r.results || []);
+    }
   }
   async function loadWeeks() {
     const r = await fetchJSON("/api/weeks");
@@ -547,6 +552,14 @@ export default function AdminPage() {
     resultLookup[r.game_id][r.player_id] = r.placement;
   });
 
+  // Assigned = seated at that game, which is what blocks a repeat.
+  // Recorded = a result has actually been saved for it.
+  const recordedGamesByPlayer = {};
+  allResults.forEach((row) => {
+    recordedGamesByPlayer[row.player_id] = recordedGamesByPlayer[row.player_id] || new Set();
+    recordedGamesByPlayer[row.player_id].add(row.game_id);
+  });
+
   const playedGamesByPlayer = {};
   const assignedThisRound = new Set();
   allSchedule.forEach((row) => {
@@ -557,7 +570,13 @@ export default function AdminPage() {
 
   const unassignedPlayers = players.filter((p) => !assignedThisRound.has(p.id));
   const availableGames = mmPlayer
-    ? games.filter((g) => !playedGamesByPlayer[mmPlayer]?.has(g.id) && (byGame[g.id] || []).length < 4)
+    ? games.filter(
+        (g) =>
+          !playedGamesByPlayer[mmPlayer]?.has(g.id) &&
+          // Per-game seat limit, not a flat four — and 0 means benched.
+          (g.max_players ?? 4) > 0 &&
+          (byGame[g.id] || []).length < (g.max_players ?? 4)
+      )
     : [];
 
   // Tracker: order columns by scarcity (fewest total plays first) so the most
@@ -1172,9 +1191,11 @@ export default function AdminPage() {
         <SectionLabel>{scopeLabel}</SectionLabel>
         <h2>Tracker</h2>
         <p className="hint">
-          Games each combatant has already played this scope (any round). Columns are ordered by
-          scarcity — whichever game has been played the least sits right next to the names, flagged
-          in <span style={{ color: "var(--warn)" }}>magenta</span>.
+          Games each combatant has taken this week, any round. <span className="mark-yes">✓</span>{" "}
+          means the result is saved; <span className="mark-seated">○</span> means they&apos;re seated
+          but the Game Master hasn&apos;t recorded it yet. Both block a repeat. Columns are ordered
+          by scarcity — whichever game has been played least sits next to the names, flagged in{" "}
+          <span style={{ color: "var(--warn)" }}>magenta</span>.
         </p>
         {players.length === 0 ? (
           <div className="empty">No combatants yet.</div>
@@ -1206,10 +1227,19 @@ export default function AdminPage() {
                       </div>
                     </td>
                     {scarceOrder.map((g) => {
-                      const on = playedGamesByPlayer[p.id]?.has(g.id);
+                      const seated = playedGamesByPlayer[p.id]?.has(g.id);
+                      const recorded = recordedGamesByPlayer[p.id]?.has(g.id);
                       return (
                         <td key={g.id} className={scarceIds.has(g.id) ? "scarce-col" : ""}>
-                          {on ? <span className="mark-yes">✓</span> : <span className="mark-no"></span>}
+                          {recorded ? (
+                            <span className="mark-yes" title="Result saved">✓</span>
+                          ) : seated ? (
+                            <span className="mark-seated" title="Seated — result not saved yet">
+                              ○
+                            </span>
+                          ) : (
+                            <span className="mark-no"></span>
+                          )}
                         </td>
                       );
                     })}

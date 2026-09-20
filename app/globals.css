@@ -965,3 +965,6 @@ textarea:focus{outline:none;border-color:var(--cyan-dim);box-shadow:0 0 0 3px va
 .seat-cap.benched span{color:var(--blood-bright);}
 .seat-cap.benched input{border-color:var(--blood-bright);}
 td.wounds.dim{color:var(--bone-dim);font-weight:400;}
+
+/* Tracker: seated at a game but no result saved yet. */
+.mark-seated{color:var(--gold);opacity:.8;font-size:13px;}
