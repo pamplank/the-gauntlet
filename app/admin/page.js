@@ -1317,8 +1317,9 @@ function MatchCard({ game, round, weekId, group, existing, onSaved, onUnassign }
                   const n = i + 1;
                   return (
                     <option key={n} value={n}>
-                      {ordinal(n)} ({formatWounds(woundsFor(n, group.length))} wound
-                      {woundsFor(n, group.length) === 1 ? "" : "s"})
+                      {n === 1
+                        ? `${ordinal(n)} (recovery — 1 wound back)`
+                        : `${ordinal(n)} (${formatWounds(woundsFor(n, group.length))} wounds)`}
                     </option>
                   );
                 })}

@@ -77,9 +77,10 @@ export default async function WeekLeaderboardPage({ params }) {
           {week.label} <span className="status-pill">{week.status.replace("_", " ")}</span>
         </h2>
         <p className="hint">
-          Ranked by fewest wounds per game. 1st place costs one wound, last costs four, whatever
-          the table size — so a six-player game and a four-player game cost the same. Per game
-          rather than total, because not everyone reaches every game.{" "}
+          Ranked by fewest wounds per game. Winning earns a recovery point — 1st place takes a
+          wound back. Everyone else takes 2 up to 4, scaled to the table size, so a six-player game
+          costs the same as a four-player one. Per game rather than total, because not everyone
+          reaches every game.{" "}
           <a href={`/weeks/${week.id}/schedule`}>View this week's schedule</a>.
         </p>
         {ranked.length === 0 ? (

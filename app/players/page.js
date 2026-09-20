@@ -61,8 +61,8 @@ export default async function CareerLeaderboardPage() {
         <SectionLabel>The Gauntlet</SectionLabel>
         <h2>Leaderboard</h2>
         <p className="hint">
-          Totals across every week. Ranked by fewest wounds per game — 1st place costs one wound, last
-          costs you four. Click a name for their full week-by-week history.
+          Totals across every week. Ranked by fewest wounds per game — winning takes a wound back,
+          last place costs four. Click a name for their full week-by-week history.
         </p>
         {ranked.length === 0 ? (
           <div className="empty">No weekly results recorded yet.</div>
