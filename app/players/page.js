@@ -45,7 +45,14 @@ export default async function CareerLeaderboardPage() {
     stats[r.player_id].played += 1;
     if (stats[r.player_id].places[r.placement] !== undefined) stats[r.player_id].places[r.placement] += 1;
   });
-  const ranked = Object.values(stats).sort((a, b) => a.wounds - b.wounds || b.played - a.played);
+  // Same reasoning as the weekly board: career totals span different numbers
+  // of games per person, so rank on the average.
+  Object.values(stats).forEach((s) => {
+    s.avg = s.played ? s.wounds / s.played : null;
+  });
+  const ranked = Object.values(stats).sort(
+    (a, b) => a.avg - b.avg || b.played - a.played
+  );
 
   return (
     <div className="wrap">
@@ -54,7 +61,7 @@ export default async function CareerLeaderboardPage() {
         <SectionLabel>The Gauntlet</SectionLabel>
         <h2>Leaderboard</h2>
         <p className="hint">
-          Totals across every week. Ranked by fewest wounds — 1st place costs you one wound, 4th
+          Totals across every week. Ranked by fewest wounds per game — 1st place costs one wound, last
           costs you four. Click a name for their full week-by-week history.
         </p>
         {ranked.length === 0 ? (
@@ -65,6 +72,7 @@ export default async function CareerLeaderboardPage() {
               <tr>
                 <th></th>
                 <th>Combatant</th>
+                <th title="Average wounds per game — what the ranking uses">Per game</th>
                 <th>Wounds</th>
                 <th title="1st place finishes">1st</th>
                 <th title="2nd place finishes">2nd</th>
@@ -83,7 +91,8 @@ export default async function CareerLeaderboardPage() {
                       <a href={`/players/${s.id}`}>{s.name}</a>
                     </div>
                   </td>
-                  <td className="wounds">{formatWounds(s.wounds)}</td>
+                  <td className="wounds">{s.avg === null ? "—" : s.avg.toFixed(2)}</td>
+                  <td className="wounds dim">{formatWounds(s.wounds)}</td>
                   <td className="placecount">{s.places[1]}</td>
                   <td className="placecount">{s.places[2]}</td>
                   <td className="placecount">{s.places[3]}</td>

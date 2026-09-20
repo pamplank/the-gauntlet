@@ -54,11 +54,17 @@ export default async function WeekLeaderboardPage({ params }) {
     stats[r.player_id].played += 1;
     if (stats[r.player_id].places[r.placement] !== undefined) stats[r.player_id].places[r.placement] += 1;
   });
+  // Ranked on wounds per game played, not the total. With 47 people and a
+  // four-seat game in the rotation, not everyone reaches all nine — and a
+  // total silently rewards whoever played fewest. More games breaks ties.
+  Object.values(stats).forEach((s) => {
+    s.avg = s.played ? s.wounds / s.played : null;
+  });
   const ranked = Object.values(stats).sort((a, b) => {
     if (a.played === 0 && b.played === 0) return 0;
     if (a.played === 0) return 1;
     if (b.played === 0) return -1;
-    return a.wounds - b.wounds || b.played - a.played;
+    return a.avg - b.avg || b.played - a.played;
   });
   const totalGames = (games || []).length;
 
@@ -71,7 +77,9 @@ export default async function WeekLeaderboardPage({ params }) {
           {week.label} <span className="status-pill">{week.status.replace("_", " ")}</span>
         </h2>
         <p className="hint">
-          Ranked by fewest wounds. 1st place = 1 wound, 2nd = 2, 3rd = 3, 4th = 4.{" "}
+          Ranked by fewest wounds per game. 1st place costs one wound, last costs four, whatever
+          the table size — so a six-player game and a four-player game cost the same. Per game
+          rather than total, because not everyone reaches every game.{" "}
           <a href={`/weeks/${week.id}/schedule`}>View this week's schedule</a>.
         </p>
         {ranked.length === 0 ? (
@@ -82,6 +90,7 @@ export default async function WeekLeaderboardPage({ params }) {
               <tr>
                 <th></th>
                 <th>Combatant</th>
+                <th title="Average wounds per game — what the ranking uses">Per game</th>
                 <th>Wounds</th>
                 <th title="1st place finishes">1st</th>
                 <th title="2nd place finishes">2nd</th>
@@ -100,7 +109,8 @@ export default async function WeekLeaderboardPage({ params }) {
                       <a href={`/players/${s.id}`}>{s.name}</a>
                     </div>
                   </td>
-                  <td className="wounds">{formatWounds(s.wounds)}</td>
+                  <td className="wounds">{s.avg === null ? "—" : s.avg.toFixed(2)}</td>
+                  <td className="wounds dim">{formatWounds(s.wounds)}</td>
                   <td className="placecount">{s.places[1]}</td>
                   <td className="placecount">{s.places[2]}</td>
                   <td className="placecount">{s.places[3]}</td>
