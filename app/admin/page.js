@@ -3,8 +3,17 @@ import { useEffect, useState } from "react";
 import Nav from "../Nav";
 import SectionLabel from "../SectionLabel";
 import { artFor } from "../../lib/gameArt";
+import { woundsFor, formatWounds } from "../../lib/scoring";
 
 const PLACE_WOUNDS = { 1: 1, 2: 2, 3: 3, 4: 4 };
+
+// Tables can seat more than four now, so placements run past "4th" and a
+// placement's wound cost depends on how many played.
+function ordinal(n) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
 const PLACE_LABEL = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
 
 function gameCode(name) {
@@ -1032,6 +1041,18 @@ export default function AdminPage() {
                   onBlur={(e) => saveGame(g.id, { description: e.target.value })}
                 />
 
+                <label className="seat-cap">
+                  <span>Seats at this table</span>
+                  <input
+                    type="number"
+                    min="2"
+                    max="12"
+                    value={g.max_players ?? 4}
+                    onChange={(e) => editGameField(g.id, "max_players", e.target.value)}
+                    onBlur={(e) => saveGame(g.id, { maxPlayers: e.target.value })}
+                  />
+                </label>
+
                 <label className={"fav-toggle" + (g.is_favorite ? " on" : "")}>
                   <input
                     type="checkbox"
@@ -1296,7 +1317,8 @@ function MatchCard({ game, round, weekId, group, existing, onSaved, onUnassign }
                   const n = i + 1;
                   return (
                     <option key={n} value={n}>
-                      {PLACE_LABEL[n]} ({PLACE_WOUNDS[n]} wound{PLACE_WOUNDS[n] > 1 ? "s" : ""})
+                      {ordinal(n)} ({formatWounds(woundsFor(n, group.length))} wound
+                      {woundsFor(n, group.length) === 1 ? "" : "s"})
                     </option>
                   );
                 })}

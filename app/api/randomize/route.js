@@ -11,8 +11,12 @@ export async function POST(req) {
     return NextResponse.json({ error: "round, playerIds and weekId required." }, { status: 400 });
   }
 
-  const { data: games } = await supabaseAdmin.from("games").select("id").order("sort_order");
+  const { data: games } = await supabaseAdmin
+    .from("games")
+    .select("id,max_players")
+    .order("sort_order");
   const gameIds = (games || []).map((g) => g.id);
+  const capacities = Object.fromEntries((games || []).map((g) => [g.id, g.max_players || 4]));
 
   const { data: allSched } = await supabaseAdmin
     .from("schedule")
@@ -32,7 +36,7 @@ export async function POST(req) {
   });
 
   const candidates = playerIds.filter((id) => !alreadyThisRound.has(id));
-  const { assignments, unplaced } = randomizeAssignments(candidates, playedGamesByPlayer, occupancy, gameIds);
+  const { assignments, unplaced } = randomizeAssignments(candidates, playedGamesByPlayer, occupancy, gameIds, capacities);
 
   if (assignments.length > 0) {
     const rows = assignments.map((a) => ({ round, game_id: a.gameId, player_id: a.playerId, week_id: weekId }));

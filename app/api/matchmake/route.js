@@ -38,8 +38,18 @@ export async function POST(req) {
     .eq("week_id", weekId)
     .eq("round", round)
     .eq("game_id", gameId);
-  if ((count || 0) >= 4) {
-    return NextResponse.json({ error: "That game already has 4 players this round." }, { status: 400 });
+  // Seat limit is per game now — some seat six or eight, Rhino Hero seats four.
+  const { data: g } = await supabaseAdmin
+    .from("games")
+    .select("name,max_players")
+    .eq("id", gameId)
+    .maybeSingle();
+  const cap = g?.max_players || 4;
+  if ((count || 0) >= cap) {
+    return NextResponse.json(
+      { error: `${g?.name || "That game"} already has its ${cap} players this round.` },
+      { status: 400 }
+    );
   }
 
   const { error } = await supabaseAdmin

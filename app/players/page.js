@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../../lib/db";
+import { woundsFor, tableSizes, tableKey, formatWounds } from "../../lib/scoring";
 import Nav from "../Nav";
 import SectionLabel from "../SectionLabel";
 import Reveal from "../Reveal";
@@ -14,7 +15,7 @@ function Avatar({ image, name }) {
 export default async function CareerLeaderboardPage() {
   const { data: results } = await supabaseAdmin
     .from("results")
-    .select("player_id,placement")
+    .select("player_id,placement,week_id,round,game_id")
     .not("week_id", "is", null);
   const playerIds = [...new Set((results || []).map((r) => r.player_id))];
 
@@ -35,9 +36,12 @@ export default async function CareerLeaderboardPage() {
       places: { 1: 0, 2: 0, 3: 0, 4: 0 },
     };
   });
+  // Table sizes vary now, so a placement only means something relative to how
+  // many sat at that table. woundsFor normalises every result onto 1-4.
+  const sizes = tableSizes(results || []);
   (results || []).forEach((r) => {
     if (!stats[r.player_id]) return;
-    stats[r.player_id].wounds += r.placement;
+    stats[r.player_id].wounds += woundsFor(r.placement, sizes[tableKey(r)]);
     stats[r.player_id].played += 1;
     if (stats[r.player_id].places[r.placement] !== undefined) stats[r.player_id].places[r.placement] += 1;
   });
@@ -79,7 +83,7 @@ export default async function CareerLeaderboardPage() {
                       <a href={`/players/${s.id}`}>{s.name}</a>
                     </div>
                   </td>
-                  <td className="wounds">{s.wounds}</td>
+                  <td className="wounds">{formatWounds(s.wounds)}</td>
                   <td className="placecount">{s.places[1]}</td>
                   <td className="placecount">{s.places[2]}</td>
                   <td className="placecount">{s.places[3]}</td>

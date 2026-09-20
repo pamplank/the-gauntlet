@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../../../lib/db";
+import { woundsFor, tableSizes, tableKey, formatWounds } from "../../../lib/scoring";
 import Nav from "../../Nav";
 import Reveal from "../../Reveal";
 
@@ -21,11 +22,19 @@ export default async function PlayerProfilePage({ params }) {
     .from("bookings")
     .select("week_id,weeks(id,label,status,event_date)")
     .eq("player_id", playerId);
-  const { data: weekResults } = await supabaseAdmin
-    .from("results")
-    .select("week_id,placement")
-    .eq("player_id", playerId)
-    .not("week_id", "is", null);
+  // Every result for the weeks this player attended, not just theirs — a
+  // placement can't be normalised without knowing how many sat at that table.
+  const weekIds = [...new Set((bookings || []).map((b) => b.week_id))];
+  let allResults = [];
+  if (weekIds.length > 0) {
+    const { data } = await supabaseAdmin
+      .from("results")
+      .select("player_id,placement,week_id,round,game_id")
+      .in("week_id", weekIds);
+    allResults = data || [];
+  }
+  const sizes = tableSizes(allResults);
+  const weekResults = allResults.filter((r) => r.player_id === playerId);
   const byWeek = {};
   (bookings || []).forEach((b) => {
     if (!b.weeks) return;
@@ -33,7 +42,7 @@ export default async function PlayerProfilePage({ params }) {
   });
   (weekResults || []).forEach((r) => {
     if (!byWeek[r.week_id]) return;
-    byWeek[r.week_id].wounds += r.placement;
+    byWeek[r.week_id].wounds += woundsFor(r.placement, sizes[tableKey(r)]);
     byWeek[r.week_id].played += 1;
   });
   const weekRows = Object.values(byWeek).sort((a, b) => {
@@ -69,7 +78,7 @@ export default async function PlayerProfilePage({ params }) {
           <tbody>
             <tr>
               <td>{weekRows.length}</td>
-              <td className="wounds">{careerWounds}</td>
+              <td className="wounds">{formatWounds(careerWounds)}</td>
               <td>{careerPlayed}</td>
             </tr>
           </tbody>
@@ -92,7 +101,7 @@ export default async function PlayerProfilePage({ params }) {
                 <tr key={w.week.id}>
                   <td><a href={`/weeks/${w.week.id}`}>{w.week.label}</a></td>
                   <td>{w.week.status.replace("_", " ")}</td>
-                  <td className="wounds">{w.wounds}</td>
+                  <td className="wounds">{formatWounds(w.wounds)}</td>
                   <td>{w.played}</td>
                 </tr>
               ))}

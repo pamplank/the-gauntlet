@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../../../lib/db";
+import { woundsFor, tableSizes, tableKey, formatWounds } from "../../../lib/scoring";
 import Nav from "../../Nav";
 import SectionLabel from "../../SectionLabel";
 import Reveal from "../../Reveal";
@@ -30,7 +31,7 @@ export default async function WeekLeaderboardPage({ params }) {
     .eq("week_id", weekId);
   const { data: results } = await supabaseAdmin
     .from("results")
-    .select("player_id,placement")
+    .select("player_id,placement,week_id,round,game_id")
     .eq("week_id", weekId);
   const { data: games } = await supabaseAdmin.from("games").select("id");
 
@@ -46,9 +47,10 @@ export default async function WeekLeaderboardPage({ params }) {
       places: { 1: 0, 2: 0, 3: 0, 4: 0 },
     };
   });
+  const sizes = tableSizes(results || []);
   (results || []).forEach((r) => {
     if (!stats[r.player_id]) return;
-    stats[r.player_id].wounds += r.placement;
+    stats[r.player_id].wounds += woundsFor(r.placement, sizes[tableKey(r)]);
     stats[r.player_id].played += 1;
     if (stats[r.player_id].places[r.placement] !== undefined) stats[r.player_id].places[r.placement] += 1;
   });
@@ -98,7 +100,7 @@ export default async function WeekLeaderboardPage({ params }) {
                       <a href={`/players/${s.id}`}>{s.name}</a>
                     </div>
                   </td>
-                  <td className="wounds">{s.wounds}</td>
+                  <td className="wounds">{formatWounds(s.wounds)}</td>
                   <td className="placecount">{s.places[1]}</td>
                   <td className="placecount">{s.places[2]}</td>
                   <td className="placecount">{s.places[3]}</td>
