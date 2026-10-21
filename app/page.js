@@ -56,7 +56,7 @@ export default async function HomePage() {
         </div>
       )}
 
-      <section className="poster-block" aria-label="The Gauntlet poster">
+      <section className="poster-block" aria-label="Scared Sober poster">
         <a
           className="poster-shot"
           href="/poster.webp"
@@ -68,7 +68,7 @@ export default async function HomePage() {
             src="/poster.webp"
             width="1080"
             height="1350"
-            alt="Bored to Death? Enter The Gauntlet — all-day board game socials at @ RUMBLE."
+            alt="Scared Sober — an alcohol-free Halloween party at @ RUMBLE, October 30 and 31, 7pm to 3am, 666 PHP entrance, come in costume."
           />
         </a>
         <div className="poster-copy">
