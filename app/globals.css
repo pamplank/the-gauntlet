@@ -1012,3 +1012,41 @@ td.wounds.dim{color:var(--bone-dim);font-weight:400;}
 .now-resting p{margin:0;display:flex;flex-wrap:wrap;gap:6px 14px;}
 .now-resting span{color:var(--bone-dim);font-size:14px;}
 .now-resting span.me{color:var(--cyan);font-weight:600;}
+
+/* ── Events: one-off nights that aren't The Gauntlet ── */
+.ev-list{display:grid;gap:16px;}
+.ev-card{
+  display:grid;grid-template-columns:minmax(0,160px) minmax(0,1fr);gap:20px;align-items:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;
+  transition:border-color .2s ease,transform .2s ease;
+}
+.ev-card:hover{border-color:var(--gold-dim);transform:translateY(-2px);text-decoration:none;}
+.ev-shot{border-radius:12px;overflow:hidden;border:1px solid var(--line);}
+.ev-shot img{display:block;width:100%;aspect-ratio:4 / 5;object-fit:cover;}
+.ev-body h3{font-size:20px;color:var(--bone);margin:0 0 6px;}
+.ev-tag{margin:0 0 8px;color:var(--bone-dim);font-size:14.5px;line-height:1.6;}
+.ev-meta{margin:0 0 8px;color:var(--bone-dim);font-size:13px;}
+.ev-price{
+  margin:0;font-family:var(--font-display),system-ui,sans-serif;font-weight:800;
+  font-size:22px;color:var(--gold);
+}
+.ev-price span{font-family:var(--font-body),system-ui,sans-serif;font-weight:400;font-size:13px;color:var(--bone-dim);}
+
+.ev-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.85fr);gap:36px;align-items:start;margin-bottom:30px;}
+.ev-poster{display:block;border-radius:16px;overflow:hidden;border:1px solid var(--line);}
+.ev-poster img{display:block;width:100%;height:auto;}
+.ev-facts{margin:0;border-top:1px solid var(--line);}
+.ev-facts > div{border-bottom:1px solid var(--line);padding:14px 0;}
+.ev-facts dt{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--bone-dim);margin-bottom:5px;}
+.ev-facts dd{
+  margin:0;font-family:var(--font-display),system-ui,sans-serif;font-weight:700;
+  font-size:18px;color:var(--bone);
+}
+.ev-facts dd.big{font-size:32px;color:var(--gold);line-height:1;}
+.ev-details{margin-bottom:30px;}
+.ev-details p{color:var(--bone-dim);font-size:15.5px;line-height:1.8;max-width:70ch;margin:0 0 14px;}
+@media (max-width:760px){
+  .ev-card{grid-template-columns:1fr;}
+  .ev-head{grid-template-columns:1fr;gap:24px;}
+}
+.poster-when{color:var(--gold)!important;font-family:var(--font-display),system-ui,sans-serif;font-weight:700;}

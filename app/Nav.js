@@ -15,6 +15,7 @@ const SECTIONS = [
 const PAGES = [
   ["/now", "Now Playing"],
   ["/weeks", "Weeks"],
+  ["/events", "Events"],
   ["/players", "Leaderboard"],
   ["/admin", "Admin"],
 ];

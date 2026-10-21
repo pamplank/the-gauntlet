@@ -4,6 +4,7 @@ import Nav from "../Nav";
 import SectionLabel from "../SectionLabel";
 import { artFor } from "../../lib/gameArt";
 import { woundsFor, formatWounds } from "../../lib/scoring";
+import EventsPanel from "./EventsPanel";
 
 const PLACE_WOUNDS = { 1: 1, 2: 2, 3: 3, 4: 4 };
 
@@ -923,6 +924,8 @@ export default function AdminPage() {
           </>
         )}
       </div>
+
+      <EventsPanel />
 
       <div className="panel">
         <SectionLabel>Event photos</SectionLabel>
