@@ -1,5 +1,10 @@
 "use client";
-import { BOOKING_PRICE, BOOKING_PRICE_ORIGINAL, WEEK_CAPACITY } from "../lib/booking";
+import {
+  BOOKING_PRICE,
+  BOOKING_PRICE_ORIGINAL,
+  BOOKING_PRICE_NOTE,
+  WEEK_CAPACITY,
+} from "../lib/booking";
 
 export default function LandingContent({ activeWeek, booked = 0, soldOutWeeks = [], booking }) {
   // Settings win; the imported constants are the fallback when the table or a
@@ -7,6 +12,7 @@ export default function LandingContent({ activeWeek, booked = 0, soldOutWeeks = 
   const price = booking?.price ?? BOOKING_PRICE;
   const priceOriginal = booking?.priceOriginal ?? BOOKING_PRICE_ORIGINAL;
   const capacity = booking?.capacity ?? WEEK_CAPACITY;
+  const priceNote = booking?.priceNote ?? BOOKING_PRICE_NOTE;
   // Weeks that sold out before the one we're leading with. Naming them is
   // real scarcity — it's the week people just missed, not a padded number.
   const missed = soldOutWeeks.filter((w) => w.id !== activeWeek?.id);
@@ -65,6 +71,7 @@ export default function LandingContent({ activeWeek, booked = 0, soldOutWeeks = 
           <strong>{price}</strong>
           <em>per person</em>
         </p>
+        {priceNote ? <p className="hero-price-note">{priceNote}</p> : null}
 
         {activeWeek ? (
           <>

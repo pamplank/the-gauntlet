@@ -1050,3 +1050,9 @@ td.wounds.dim{color:var(--bone-dim);font-weight:400;}
   .ev-head{grid-template-columns:1fr;gap:24px;}
 }
 .poster-when{color:var(--gold)!important;font-family:var(--font-display),system-ui,sans-serif;font-weight:700;}
+
+/* What the ticket includes — a quiet line under the price. */
+.hero-price-note{
+  margin:-12px 0 18px;color:var(--good);font-size:13px;letter-spacing:.01em;
+}
+.book-price-note{display:block;margin-top:4px;color:var(--good);font-size:12.5px;}

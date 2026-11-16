@@ -55,6 +55,9 @@ export default async function BookPage() {
                   ) : null}
                   <strong>{booking.price}</strong>
                 </span>
+                {booking.priceNote ? (
+                  <span className="book-price-note">{booking.priceNote}</span>
+                ) : null}
               </div>
               <div className="book-count">
                 <span className="book-number">
