@@ -10,11 +10,13 @@ import PhotoRibbon from "./PhotoRibbon";
 import FeaturedEvent from "./FeaturedEvent";
 import { photoUrl, RIBBON_LIMIT } from "../lib/photos";
 import { getOpenWeeks, splitOpenWeeks } from "../lib/weeks";
+import { getSettings, bookingFromSettings } from "../lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const openWeeks = await getOpenWeeks(supabaseAdmin);
+  const booking = bookingFromSettings(await getSettings(supabaseAdmin));
+  const openWeeks = await getOpenWeeks(supabaseAdmin, booking.capacity);
   const { bookable, soldOut } = splitOpenWeeks(openWeeks);
   // Lead with the soonest week you can actually book. If every open week is
   // full, fall back to the last one so the hero can say so rather than
@@ -58,6 +60,7 @@ export default async function HomePage() {
         activeWeek={activeWeek}
         booked={activeWeek?.booked ?? 0}
         soldOutWeeks={soldOut}
+        booking={booking}
       />
 
       {gameNames.length > 0 && (

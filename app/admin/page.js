@@ -5,6 +5,7 @@ import SectionLabel from "../SectionLabel";
 import { artFor } from "../../lib/gameArt";
 import { woundsFor, formatWounds } from "../../lib/scoring";
 import EventsPanel from "./EventsPanel";
+import SettingsPanel from "./SettingsPanel";
 
 const PLACE_WOUNDS = { 1: 1, 2: 2, 3: 3, 4: 4 };
 
@@ -924,6 +925,8 @@ export default function AdminPage() {
           </>
         )}
       </div>
+
+      <SettingsPanel />
 
       <EventsPanel />
 

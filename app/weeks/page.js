@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "../../lib/db";
-import { WEEK_CAPACITY } from "../../lib/booking";
+import { getSettings, bookingFromSettings } from "../../lib/settings";
 import { photoUrl } from "../../lib/photos";
 import Nav from "../Nav";
 import SectionLabel from "../SectionLabel";
@@ -14,6 +14,7 @@ export const metadata = {
 };
 
 export default async function WeeksPage() {
+  const { capacity } = bookingFromSettings(await getSettings(supabaseAdmin));
   const { data: weeks } = await supabaseAdmin
     .from("weeks")
     .select("*")
@@ -68,7 +69,7 @@ export default async function WeeksPage() {
 
         {open.length > 0 ? (
           open.map((w) => (
-            <ActiveWeekCard key={w.id} week={w} booked={counts[w.id] || 0} />
+            <ActiveWeekCard key={w.id} week={w} booked={counts[w.id] || 0} capacity={capacity} />
           ))
         ) : (
           <div className="empty">

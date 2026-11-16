@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "../../lib/db";
-import { BOOKING_PRICE, BOOKING_PRICE_ORIGINAL, WEEK_CAPACITY } from "../../lib/booking";
+import { getSettings, bookingFromSettings } from "../../lib/settings";
 import { getOpenWeeks } from "../../lib/weeks";
 import Nav from "../Nav";
 import SectionLabel from "../SectionLabel";
@@ -9,7 +9,8 @@ import RegistrationForm from "./RegistrationForm";
 export const dynamic = "force-dynamic";
 
 export default async function BookPage() {
-  const openWeeks = await getOpenWeeks(supabaseAdmin);
+  const booking = bookingFromSettings(await getSettings(supabaseAdmin));
+  const openWeeks = await getOpenWeeks(supabaseAdmin, booking.capacity);
   const bookable = openWeeks.filter((w) => !w.full);
   const soldOut = openWeeks.filter((w) => w.full);
 
@@ -49,10 +50,10 @@ export default async function BookPage() {
               <div className="book-price">
                 <span className="book-label">Entry</span>
                 <span className="book-price-row">
-                  {BOOKING_PRICE_ORIGINAL ? (
-                    <s aria-label={`was ${BOOKING_PRICE_ORIGINAL}`}>{BOOKING_PRICE_ORIGINAL}</s>
+                  {booking.priceOriginal ? (
+                    <s aria-label={`was ${booking.priceOriginal}`}>{booking.priceOriginal}</s>
                   ) : null}
-                  <strong>{BOOKING_PRICE}</strong>
+                  <strong>{booking.price}</strong>
                 </span>
               </div>
               <div className="book-count">
@@ -78,15 +79,15 @@ export default async function BookPage() {
               <div className="book-soldout">
                 <span className="soldout-stamp">Sold Out</span>
                 <p>
-                  Every open week is full — all {WEEK_CAPACITY} spots each. Check{" "}
+                  Every open week is full — all {booking.capacity} spots each. Check{" "}
                   <a href="/weeks">Weeks</a> for the next one; they open a few days ahead.
                 </p>
               </div>
             ) : (
               <RegistrationForm
                 weeks={bookable}
-                price={BOOKING_PRICE}
-                priceOriginal={BOOKING_PRICE_ORIGINAL}
+                price={booking.price}
+                priceOriginal={booking.priceOriginal}
               />
             )}
           </>

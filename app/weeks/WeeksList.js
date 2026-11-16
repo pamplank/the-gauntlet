@@ -8,8 +8,8 @@ const STATUS_LABEL = {
 };
 
 // The week currently taking bookings — price, seats left, and the CTA.
-export function ActiveWeekCard({ week, booked }) {
-  const left = Math.max(0, WEEK_CAPACITY - booked);
+export function ActiveWeekCard({ week, booked, capacity = WEEK_CAPACITY }) {
+  const left = Math.max(0, capacity - booked);
   const full = left === 0;
 
   return (
@@ -20,10 +20,10 @@ export function ActiveWeekCard({ week, booked }) {
         {week.event_date && <p className="week-now-date">{week.event_date}</p>}
         <p className="week-now-seats">
           {full
-            ? `All ${WEEK_CAPACITY} seats taken`
+            ? `All ${capacity} seats taken`
             : booked === 0
-              ? `Just opened — all ${WEEK_CAPACITY} seats available`
-              : `${booked} of ${WEEK_CAPACITY} seats taken — ${left} left`}
+              ? `Just opened — all ${capacity} seats available`
+              : `${booked} of ${capacity} seats taken — ${left} left`}
         </p>
         {full && <p className="week-now-next">The next week opens a few days ahead.</p>}
       </div>
@@ -75,7 +75,7 @@ export function WeekRecap({ week, booked, coverUrl }) {
   );
 }
 
-export default function WeeksList({ weeks, counts }) {
+export default function WeeksList({ weeks, counts, capacity = WEEK_CAPACITY }) {
   if (!weeks || weeks.length === 0) {
     return <div className="empty">No weeks yet — check back once the next one is scheduled.</div>;
   }
@@ -91,7 +91,7 @@ export default function WeeksList({ weeks, counts }) {
                 {w.label} <span className="status-pill">{STATUS_LABEL[w.status] || w.status}</span>
               </h3>
               <p className="hint">
-                {counts[w.id] || 0} / {WEEK_CAPACITY} booked{w.event_date ? ` · ${w.event_date}` : ""}
+                {counts[w.id] || 0} / {capacity} booked{w.event_date ? ` · ${w.event_date}` : ""}
               </p>
             </div>
             <div>

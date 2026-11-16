@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import CustomCursor from "./CustomCursor";
 import SiteFooter from "./SiteFooter";
+import { supabaseAdmin } from "../lib/db";
+import { getSettings, bookingFromSettings } from "../lib/settings";
 
 // PP NeueBit ships as a single Bold cut. Declaring the range 100–900 maps every
 // font-weight in the CSS onto this one face, so the browser never synthesises a
@@ -74,13 +76,15 @@ export const viewport = {
   themeColor: "#15100c",
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const booking = bookingFromSettings(await getSettings(supabaseAdmin));
+
   return (
     <html lang="en" className={`${neuebit.variable} ${inter.variable}`}>
       <body>
         <CustomCursor />
         {children}
-        <SiteFooter />
+        <SiteFooter booking={booking} />
       </body>
     </html>
   );

@@ -1,7 +1,6 @@
-import { BOOKING_PRICE, BOOKING_PRICE_ORIGINAL } from "../lib/booking";
 import { ORGANISER, VENUE, liveSocials } from "../lib/site";
 
-export default function SiteFooter() {
+export default function SiteFooter({ booking }) {
   const socials = liveSocials();
   const year = new Date().getFullYear();
 
@@ -56,8 +55,8 @@ export default function SiteFooter() {
 
         <div className="foot-cta">
           <p className="foot-price">
-            {BOOKING_PRICE_ORIGINAL ? <s>{BOOKING_PRICE_ORIGINAL}</s> : null}
-            <strong>{BOOKING_PRICE}</strong>
+            {booking.priceOriginal ? <s>{booking.priceOriginal}</s> : null}
+            <strong>{booking.price}</strong>
           </p>
           <a className="btn gold pill" href="/book">
             Book a Spot <span aria-hidden="true">→</span>

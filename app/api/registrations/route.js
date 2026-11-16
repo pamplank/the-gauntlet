@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, isAuthed } from "../../../lib/db";
-import { WEEK_CAPACITY } from "../../../lib/booking";
+import { getSettings, bookingFromSettings } from "../../../lib/settings";
 import { announceSoldOut } from "../../../lib/discord";
 import {
   AGE_RANGES,
@@ -43,12 +43,16 @@ export async function POST(req) {
     return NextResponse.json({ error: "Registration has closed for this week." }, { status: 400 });
   }
 
+  // Read the configured capacity rather than the constant, so raising the
+  // seat count in the admin actually lets more people through.
+  const { capacity } = bookingFromSettings(await getSettings(supabaseAdmin));
+
   const { count: taken } = await supabaseAdmin
     .from("registrations")
     .select("id", { count: "exact", head: true })
     .eq("week_id", weekId)
     .neq("status", "rejected");
-  if ((taken || 0) >= WEEK_CAPACITY) {
+  if ((taken || 0) >= capacity) {
     return NextResponse.json({ error: "This week is fully booked." }, { status: 400 });
   }
 
@@ -234,7 +238,7 @@ export async function PATCH(req) {
       .from("bookings")
       .select("id", { count: "exact", head: true })
       .eq("week_id", reg.week_id);
-    if (booked === WEEK_CAPACITY) {
+    if (booked === capacity) {
       const { data: week } = await supabaseAdmin
         .from("weeks")
         .select("label")

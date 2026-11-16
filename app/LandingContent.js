@@ -1,13 +1,18 @@
 "use client";
 import { BOOKING_PRICE, BOOKING_PRICE_ORIGINAL, WEEK_CAPACITY } from "../lib/booking";
 
-export default function LandingContent({ activeWeek, booked = 0, soldOutWeeks = [] }) {
+export default function LandingContent({ activeWeek, booked = 0, soldOutWeeks = [], booking }) {
+  // Settings win; the imported constants are the fallback when the table or a
+  // key is missing, so the panel never renders a blank price.
+  const price = booking?.price ?? BOOKING_PRICE;
+  const priceOriginal = booking?.priceOriginal ?? BOOKING_PRICE_ORIGINAL;
+  const capacity = booking?.capacity ?? WEEK_CAPACITY;
   // Weeks that sold out before the one we're leading with. Naming them is
   // real scarcity — it's the week people just missed, not a padded number.
   const missed = soldOutWeeks.filter((w) => w.id !== activeWeek?.id);
-  const left = Math.max(0, WEEK_CAPACITY - booked);
+  const left = Math.max(0, capacity - booked);
   const full = activeWeek && left === 0;
-  const pct = activeWeek ? Math.round((booked / WEEK_CAPACITY) * 100) : 0;
+  const pct = activeWeek ? Math.round((booked / capacity) * 100) : 0;
 
   return (
     <div className="panel hero" id="home">
@@ -52,12 +57,12 @@ export default function LandingContent({ activeWeek, booked = 0, soldOutWeeks = 
         </p>
 
         <p className="hero-price">
-          {BOOKING_PRICE_ORIGINAL ? (
+          {priceOriginal ? (
             <>
-              <s aria-label={`was ${BOOKING_PRICE_ORIGINAL}`}>{BOOKING_PRICE_ORIGINAL}</s>{" "}
+              <s aria-label={`was ${priceOriginal}`}>{priceOriginal}</s>{" "}
             </>
           ) : null}
-          <strong>{BOOKING_PRICE}</strong>
+          <strong>{price}</strong>
           <em>per person</em>
         </p>
 
@@ -72,10 +77,10 @@ export default function LandingContent({ activeWeek, booked = 0, soldOutWeeks = 
                 claim every seat is available while the panel says sold out. */}
             <p className="hero-panel-meta">
               {full
-                ? `Fully booked — all ${WEEK_CAPACITY} seats taken`
+                ? `Fully booked — all ${capacity} seats taken`
                 : booked === 0
-                  ? `Just opened — all ${WEEK_CAPACITY} seats available`
-                  : `${booked} of ${WEEK_CAPACITY} seats taken — ${left} left`}
+                  ? `Just opened — all ${capacity} seats available`
+                  : `${booked} of ${capacity} seats taken — ${left} left`}
             </p>
           </>
         ) : null}
